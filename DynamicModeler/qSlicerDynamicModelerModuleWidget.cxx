@@ -138,6 +138,13 @@ void qSlicerDynamicModelerModuleWidget::setup()
   vtkNew<vtkSlicerDynamicModelerSelectByPointsTool> selectByPointsTool;
   this->addToolButton(QIcon(":/Icons/SelectByPoints.png"), selectByPointsTool, buttonPosition / columns, (buttonPosition++) % columns);
 
+  std::string createGeometryMenuName = "Create Geometry";
+  QMenu* createGeometryMenu = this->addMenuButton(QIcon(":/Icons/CreateGeometry.png"), createGeometryMenuName, buttonPosition / columns, (buttonPosition++) % columns);
+  vtkNew<vtkSlicerDynamicModelerCreateArrowTool> createArrowTool;
+  this->addToolButtonToMenu(addGeometryMenu, QIcon(":/Icons/CreateArrow.png"), createArrowTool);
+  vtkNew<vtkSlicerDynamicModelerCreateCubeTool> createCubeTool;
+  this->addToolButtonToMenu(addGeometryMenu, QIcon(":/Icons/CreateCube.png"), createCubeTool);
+
   connect(d->SubjectHierarchyTreeView, SIGNAL(currentItemChanged(vtkIdType)),
     this, SLOT(onParameterNodeChanged()));
   connect(d->ApplyButton, SIGNAL(checkStateChanged(Qt::CheckState)),
@@ -163,6 +170,45 @@ void qSlicerDynamicModelerModuleWidget::addToolButton(QIcon icon, vtkSlicerDynam
     button->setProperty("ToolName", tool->GetName());
     }
   d->ButtonLayout->addWidget(button, row, column);
+
+  connect(button, SIGNAL(clicked()), this, SLOT(onAddToolClicked()));
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDynamicModelerModuleWidget::addMenuButton(QIcon icon, std::string menuName, int row, int column)
+{
+  Q_D(qSlicerDynamicModelerModuleWidget);
+
+  QPushButton* button = new QPushButton();
+  button->setIcon(icon);
+  button->setToolTip(menuName.c_str());
+
+  menu = new QMenu(button);
+  button->setMenu(myMenu)
+  button->setPopupMode(qt.QToolButton.MenuButtonPopup)
+
+  d->ButtonLayout->addWidget(button, row, column);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDynamicModelerModuleWidget::addToolButtonToMenu(QMenu* menu, QIcon icon, vtkSlicerDynamicModelerTool* tool)
+{
+  Q_D(qSlicerDynamicModelerModuleWidget);
+  if (!tool)
+    {
+    qCritical() << "Invalid tool object!";
+    }
+
+  QPushButton* button = new QPushButton();
+  button->setIcon(icon);
+  if (tool->GetName())
+    {
+    button->setToolTip(tool->GetName());
+    button->setProperty("ToolName", tool->GetName());
+    widgetAction = new QWidgetAction(menu);
+    widgetAction->setDefaultWidget(button);
+    }
+  menu->addAction(widgetAction);
 
   connect(button, SIGNAL(clicked()), this, SLOT(onAddToolClicked()));
 }
