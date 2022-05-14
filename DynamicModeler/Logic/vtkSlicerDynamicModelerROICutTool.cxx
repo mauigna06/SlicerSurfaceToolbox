@@ -126,7 +126,8 @@ vtkSlicerDynamicModelerROICutTool::vtkSlicerDynamicModelerROICutTool()
     "Create a closed surface by triangulating the clipped region",
     this->GetCapSurfaceAttributeName(),
     PARAMETER_BOOL,
-    true);
+    true,
+    "");
   this->InputParameterInfo.push_back(parameterCapSurface);
 
   this->InputModelToWorldTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();

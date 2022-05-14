@@ -115,7 +115,8 @@ vtkSlicerDynamicModelerCurveCutTool::vtkSlicerDynamicModelerCurveCutTool()
     "If enabled then the surface will be cut as close as possible to the curve, otherwise edges of the original mesh are preserved",
     CURVE_CUT_STRAIGHT_CUT,
     PARAMETER_BOOL,
-    true);
+    true,
+    "");
   this->InputParameterInfo.push_back(parameterStraightCut); 
 
   /////////

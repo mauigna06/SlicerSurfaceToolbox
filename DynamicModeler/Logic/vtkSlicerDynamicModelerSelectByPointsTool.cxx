@@ -122,7 +122,8 @@ vtkSlicerDynamicModelerSelectByPointsTool::vtkSlicerDynamicModelerSelectByPoints
     "Selection distance of model's points to input fiducials.",
     "SelectionDistance",
     PARAMETER_DOUBLE,
-    5.0);
+    5.0,
+    "");
   this->InputParameterInfo.push_back(parameterSelectionDistance);
 
   ParameterInfo parameterSelectionAlgorithm(
@@ -131,7 +132,8 @@ vtkSlicerDynamicModelerSelectByPointsTool::vtkSlicerDynamicModelerSelectByPoints
       " SphereRadius method uses straight line distance. GeodesicDistance method uses distance on surface.",
     "SelectionAlgorithm",
     PARAMETER_STRING_ENUM,
-    "SphereRadius");
+    "SphereRadius",
+    "");
 
   vtkNew<vtkStringArray> possibleValues;
   parameterSelectionAlgorithm.PossibleValues = possibleValues;

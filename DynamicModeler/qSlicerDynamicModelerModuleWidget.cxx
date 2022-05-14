@@ -523,79 +523,225 @@ void qSlicerDynamicModelerModuleWidget::updateParameterWidgets()
     return;
     }
 
+  // process first the non-dependent parameters
   for (int i = 0; i < tool->GetNumberOfInputParameters(); ++i)
     {
-    std::string name = tool->GetNthInputParameterName(i);
-    std::string description = tool->GetNthInputParameterDescription(i);
-    std::string attributeName = tool->GetNthInputParameterAttributeName(i);
-    vtkVariant value = tool->GetNthInputParameterValue(i, d->DynamicModelerNode);
-    int type = tool->GetNthInputParameterType(i);
+    std::string dependsOnAttribute = tool->GetNthInputParameterDependanceAttribute(i);
+    if (dependsOnAttribute.empty())
+      {
+      std::string name = tool->GetNthInputParameterName(i);
+      std::string description = tool->GetNthInputParameterDescription(i);
+      std::string attributeName = tool->GetNthInputParameterAttributeName(i);
+      vtkVariant value = tool->GetNthInputParameterValue(i, d->DynamicModelerNode);
+      int type = tool->GetNthInputParameterType(i);
 
-    QWidget* parameterSelector = d->ParametersCollapsibleButton->findChild<QWidget*>(attributeName.c_str());
-    if (type == vtkSlicerDynamicModelerTool::PARAMETER_BOOL)
-      {
-      QCheckBox* checkBox = qobject_cast<QCheckBox*>(parameterSelector);
-      if (!checkBox)
+      QWidget* parameterSelector = d->ParametersCollapsibleButton->findChild<QWidget*>(attributeName.c_str());
+      if (type == vtkSlicerDynamicModelerTool::PARAMETER_BOOL)
         {
-        qCritical() << "Could not find widget for parameter " << name.c_str();
-        continue;
-        }
+        QCheckBox* checkBox = qobject_cast<QCheckBox*>(parameterSelector);
+        if (!checkBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
 
-      bool wasBlocking = checkBox->blockSignals(true);
-      bool checked = value.ToInt() != 0;
-      checkBox->setChecked(checked);
-      checkBox->blockSignals(wasBlocking);
-      }
-    else if (type == vtkSlicerDynamicModelerTool::PARAMETER_INT)
-      {
-      QSpinBox* spinBox = qobject_cast<QSpinBox*>(parameterSelector);
-      if (!spinBox)
-        {
-        qCritical() << "Could not find widget for parameter " << name.c_str();
-        continue;
+        bool wasBlocking = checkBox->blockSignals(true);
+        bool checked = value.ToInt() != 0;
+        checkBox->setChecked(checked);
+        checkBox->blockSignals(wasBlocking);
         }
-      bool wasBlocking = spinBox->blockSignals(true);
-      spinBox->setValue(value.ToInt());
-      spinBox->blockSignals(wasBlocking);
-      }
-    else if (type == vtkSlicerDynamicModelerTool::PARAMETER_DOUBLE)
-      {
-      ctkDoubleSpinBox* doubleSpinBox = qobject_cast<ctkDoubleSpinBox*>(parameterSelector);
-      if (!doubleSpinBox)
+      else if (type == vtkSlicerDynamicModelerTool::PARAMETER_INT)
         {
-        qCritical() << "Could not find widget for parameter " << name.c_str();
-        continue;
+        QSpinBox* spinBox = qobject_cast<QSpinBox*>(parameterSelector);
+        if (!spinBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        bool wasBlocking = spinBox->blockSignals(true);
+        spinBox->setValue(value.ToInt());
+        spinBox->blockSignals(wasBlocking);
         }
-      bool wasBlocking = doubleSpinBox->blockSignals(true);
-      doubleSpinBox->setValue(value.ToDouble());
-      doubleSpinBox->blockSignals(wasBlocking);
-      }
-    else if (type == vtkSlicerDynamicModelerTool::PARAMETER_STRING_ENUM)
-      {
-      QComboBox* comboBox = qobject_cast<QComboBox*>(parameterSelector);
-      if (!comboBox)
+      else if (type == vtkSlicerDynamicModelerTool::PARAMETER_DOUBLE)
         {
-        qCritical() << "Could not find widget for parameter " << name.c_str();
-        continue;
+        ctkDoubleSpinBox* doubleSpinBox = qobject_cast<ctkDoubleSpinBox*>(parameterSelector);
+        if (!doubleSpinBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        bool wasBlocking = doubleSpinBox->blockSignals(true);
+        doubleSpinBox->setValue(value.ToDouble());
+        doubleSpinBox->blockSignals(wasBlocking);
         }
-      bool wasBlocking = comboBox->blockSignals(true);
-      int index = comboBox->findText(QString::fromStdString(value.ToString()));
-      comboBox->setCurrentIndex(index);
-      comboBox->blockSignals(wasBlocking);
-      }
-    else
-      {
-      QLineEdit* lineEdit = qobject_cast<QLineEdit*>(parameterSelector);
-      if (!lineEdit)
+      else if (type == vtkSlicerDynamicModelerTool::PARAMETER_STRING_ENUM)
         {
-        qCritical() << "Could not find widget for parameter " << name.c_str();
-        continue;
+        QComboBox* comboBox = qobject_cast<QComboBox*>(parameterSelector);
+        if (!comboBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        bool wasBlocking = comboBox->blockSignals(true);
+        int index = comboBox->findText(QString::fromStdString(value.ToString()));
+        comboBox->setCurrentIndex(index);
+        comboBox->blockSignals(wasBlocking);
         }
-      int cursorPosition = lineEdit->cursorPosition();
-      bool wasBlocking = lineEdit->blockSignals(true);
-      lineEdit->setText(QString::fromStdString(value.ToString()));
-      lineEdit->setCursorPosition(cursorPosition);
-      lineEdit->blockSignals(wasBlocking);
+      else
+        {
+        QLineEdit* lineEdit = qobject_cast<QLineEdit*>(parameterSelector);
+        if (!lineEdit)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        int cursorPosition = lineEdit->cursorPosition();
+        bool wasBlocking = lineEdit->blockSignals(true);
+        lineEdit->setText(QString::fromStdString(value.ToString()));
+        lineEdit->setCursorPosition(cursorPosition);
+        lineEdit->blockSignals(wasBlocking);
+        }
+      }
+    }
+
+    // process dependent parameters
+    for (int i = 0; i < tool->GetNumberOfInputParameters(); ++i)
+    {
+    std::string dependsOnAttribute = tool->GetNthInputParameterDependanceAttribute(i);
+    if (not dependsOnAttribute.empty())
+      {
+      int dependanceParameterNumber = tool->GetInputParameterNumberByAttributeName(dependsOnAttribute);
+      vtkVariant dependanceAttributeValue = tool->GetNthInputParameterValue(dependanceParameterNumber, d->DynamicModelerNode);
+      vtkVariant currentDependanceAttributeValue = tool->GetNthInputParameterDependanceValue(i);
+      std::string name = tool->GetNthInputParameterName(i);
+      std::string description = tool->GetNthInputParameterDescription(i);
+      std::string attributeName = tool->GetNthInputParameterAttributeName(i);
+      vtkVariant value = tool->GetNthInputParameterValue(i, d->DynamicModelerNode);
+      int type = tool->GetNthInputParameterType(i);
+      
+      QWidget* parameterSelector = d->ParametersCollapsibleButton->findChild<QWidget*>(attributeName.c_str());
+      QFormLayout *formLayout = parameterSelector->parentWidget()->layout();
+      QLabel *labelOfWidget = formLayout.labelForField(parameterSelector);
+      if (type == vtkSlicerDynamicModelerTool::PARAMETER_BOOL)
+        {
+        QCheckBox* checkBox = qobject_cast<QCheckBox*>(parameterSelector);
+        if (!checkBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+
+        bool wasBlocking = checkBox->blockSignals(true);
+        bool checked = value.ToInt() != 0;
+        checkBox->setChecked(checked);
+        checkBox->blockSignals(wasBlocking);
+
+        if (dependanceAttributeValue == currentDependanceAttributeValue)
+          {
+          checkBox->setVisible(true);
+          labelOfWidget->setVisible(true);
+          }
+        else
+          {
+          checkBox->setVisible(false);
+          labelOfWidget->setVisible(false);
+          }
+        }
+      else if (type == vtkSlicerDynamicModelerTool::PARAMETER_INT)
+        {
+        QSpinBox* spinBox = qobject_cast<QSpinBox*>(parameterSelector);
+        if (!spinBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        bool wasBlocking = spinBox->blockSignals(true);
+        spinBox->setValue(value.ToInt());
+        spinBox->blockSignals(wasBlocking);
+
+        if (dependanceAttributeValue == currentDependanceAttributeValue)
+          {
+          spinBox->setVisible(true);
+          labelOfWidget->setVisible(true);
+          }
+        else
+          {
+          spinBox->setVisible(false);
+          labelOfWidget->setVisible(false);
+          }
+        }
+      else if (type == vtkSlicerDynamicModelerTool::PARAMETER_DOUBLE)
+        {
+        ctkDoubleSpinBox* doubleSpinBox = qobject_cast<ctkDoubleSpinBox*>(parameterSelector);
+        if (!doubleSpinBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        bool wasBlocking = doubleSpinBox->blockSignals(true);
+        doubleSpinBox->setValue(value.ToDouble());
+        doubleSpinBox->blockSignals(wasBlocking);
+
+        if (dependanceAttributeValue == currentDependanceAttributeValue)
+          {
+          doubleSpinBox->setVisible(true);
+          labelOfWidget->setVisible(true);
+          }
+        else
+          {
+          doubleSpinBox->setVisible(false);
+          labelOfWidget->setVisible(false);
+          }
+        }
+      else if (type == vtkSlicerDynamicModelerTool::PARAMETER_STRING_ENUM)
+        {
+        QComboBox* comboBox = qobject_cast<QComboBox*>(parameterSelector);
+        if (!comboBox)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        bool wasBlocking = comboBox->blockSignals(true);
+        int index = comboBox->findText(QString::fromStdString(value.ToString()));
+        comboBox->setCurrentIndex(index);
+        comboBox->blockSignals(wasBlocking);
+
+        if (dependanceAttributeValue == currentDependanceAttributeValue)
+          {
+          comboBox->setVisible(true);
+          labelOfWidget->setVisible(true);
+          }
+        else
+          {
+          comboBox->setVisible(false);
+          labelOfWidget->setVisible(false);
+          }
+        }
+      else
+        {
+        QLineEdit* lineEdit = qobject_cast<QLineEdit*>(parameterSelector);
+        if (!lineEdit)
+          {
+          qCritical() << "Could not find widget for parameter " << name.c_str();
+          continue;
+          }
+        int cursorPosition = lineEdit->cursorPosition();
+        bool wasBlocking = lineEdit->blockSignals(true);
+        lineEdit->setText(QString::fromStdString(value.ToString()));
+        lineEdit->setCursorPosition(cursorPosition);
+        lineEdit->blockSignals(wasBlocking);
+
+        if (dependanceAttributeValue == currentDependanceAttributeValue)
+          {
+          lineEdit->setVisible(true);
+          labelOfWidget->setVisible(true);
+          }
+        else
+          {
+          lineEdit->setVisible(false);
+          labelOfWidget->setVisible(false);
+          }
+        }
       }
     }
 }

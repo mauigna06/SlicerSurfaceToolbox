@@ -131,8 +131,17 @@ public:
   /// Returns the attribute name of the Nth input parameter.
   std::string GetNthInputParameterAttributeName(int n);
 
+  /// Returns the dependance attribute name of the Nth input parameter.
+  std::string GetNthInputParameterDependanceAttribute(int n);
+
+  /// Returns the dependance value of the Nth input parameter from the parameter node.
+  vtkVariant GetNthInputParameterDependanceValue(int n);
+
   /// Returns the data type of the Nth input parameter.
   int GetNthInputParameterType(int n);
+
+  /// Returns the index of the input parameter with attributeName.
+  int GetInputParameterNumberByAttributeName(std::string attributeName);
 
   /// Returns the value of the Nth input parameter from the parameter node.
   vtkVariant GetNthInputParameterValue(int n, vtkMRMLDynamicModelerNode* surfaceEditorNode);
@@ -209,19 +218,23 @@ protected:
   
   struct StructParameterInfo
   {
-    StructParameterInfo(std::string name, std::string description, std::string attributeName, int type, vtkVariant defaultValue)
+    StructParameterInfo(std::string name, std::string description, std::string attributeName, int type, vtkVariant defaultValue, std::string dependanceAttributeName, int type, vtkVariant dependanceValue)
       : Name(name)
       , Description(description)
       , AttributeName(attributeName)
       , Type(type)
       , DefaultValue(defaultValue)
+      , DependanceAttributeName(dependanceAttributeName)
+      , DependanceValue(dependanceValue)
     {
     }
     std::string Name;
     std::string Description;
     std::string AttributeName;
+    std::string DependanceAttributeName;
     int Type{ PARAMETER_STRING };
     vtkVariant DefaultValue;
+    vtkVariant DependanceValue;
     vtkSmartPointer<vtkStringArray> PossibleValues;
   };
   using ParameterInfo = struct StructParameterInfo;

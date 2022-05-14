@@ -88,7 +88,8 @@ vtkSlicerDynamicModelerMarginTool::vtkSlicerDynamicModelerMarginTool()
     "If positive value is specified then the model will be expanded by this much towards the surface normal, if negative then the model will be shrunken. Keep the absolute value low to avoid self-intersection.",
     "Margin",
     PARAMETER_DOUBLE,
-    5.0);
+    5.0,
+    "");
   this->InputParameterInfo.push_back(parameterShellThickness);
 
   this->InputModelToWorldTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();

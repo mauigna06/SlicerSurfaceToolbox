@@ -87,7 +87,8 @@ vtkSlicerDynamicModelerHollowTool::vtkSlicerDynamicModelerHollowTool()
     "Shell thickness of the generated hollow model. Keep the value low to avoid self-intersection.",
     "ShellThickness",
     PARAMETER_DOUBLE,
-    1.0);
+    1.0,
+    "");
   this->InputParameterInfo.push_back(parameterShellThickness);
 
   this->InputModelToWorldTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();

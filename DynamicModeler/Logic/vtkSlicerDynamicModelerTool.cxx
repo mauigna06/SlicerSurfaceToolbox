@@ -309,6 +309,27 @@ vtkStringArray* vtkSlicerDynamicModelerTool::GetNthInputParameterPossibleValues(
   return this->InputParameterInfo[n].PossibleValues;
 }
 
+int vtkSlicerDynamicModelerTool::GetNthInputParameterDependanceAttribute(int n)
+{
+  if (n >= this->GetNumberOfInputParameters())
+    {
+    vtkErrorMacro("Parameter " << n << " is out of range!");
+    return nullptr;
+    }
+  return this->InputParameterInfo[n].DependanceAttribute;
+}
+
+//---------------------------------------------------------------------------
+vtkVariant vtkSlicerDynamicModelerTool::GetNthInputParameterDependanceValue(int n)
+{
+  if (n >= this->GetNumberOfInputParameters())
+    {
+    vtkErrorMacro("Parameter " << n << " is out of range!");
+    return PARAMETER_STRING;
+    }
+  return this->InputParameterInfo[n].DependanceValue;
+}
+
 //---------------------------------------------------------------------------
 bool vtkSlicerDynamicModelerTool::HasRequiredInputs(vtkMRMLDynamicModelerNode* surfaceEditorNode)
 {

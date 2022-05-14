@@ -132,7 +132,8 @@ vtkSlicerDynamicModelerPlaneCutTool::vtkSlicerDynamicModelerPlaneCutTool()
     "Create a closed surface by triangulating the clipped region",
     "CapSurface",
     PARAMETER_BOOL,
-    true);
+    true,
+    "");
   this->InputParameterInfo.push_back(parameterCapSurface);
 
   ParameterInfo parameterOperationType(
@@ -140,7 +141,8 @@ vtkSlicerDynamicModelerPlaneCutTool::vtkSlicerDynamicModelerPlaneCutTool()
     "Method used for combining the planes",
     "OperationType",
     PARAMETER_STRING_ENUM,
-    "Union");
+    "Union",
+    "");
 
   vtkNew<vtkStringArray> possibleValues;
   parameterOperationType.PossibleValues = possibleValues;
