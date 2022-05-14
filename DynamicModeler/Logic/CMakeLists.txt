@@ -27,6 +27,10 @@ set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}AppendTool.h
   vtkSlicer${MODULE_NAME}BoundaryCutTool.cxx
   vtkSlicer${MODULE_NAME}BoundaryCutTool.h
+  vtkSlicer${MODULE_NAME}CreateArrowTool.cxx
+  vtkSlicer${MODULE_NAME}CreateArrowTool.h
+  vtkSlicer${MODULE_NAME}CreateCubeTool.cxx
+  vtkSlicer${MODULE_NAME}CreateCubeTool.h
   vtkSlicer${MODULE_NAME}CurveCutTool.cxx
   vtkSlicer${MODULE_NAME}CurveCutTool.h
   vtkSlicer${MODULE_NAME}HollowTool.cxx

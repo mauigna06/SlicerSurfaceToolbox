@@ -28,6 +28,8 @@ limitations under the License.
 #include "vtkSlicerDynamicModelerPlaneCutTool.h"
 #include "vtkSlicerDynamicModelerROICutTool.h"
 #include "vtkSlicerDynamicModelerSelectByPointsTool.h"
+#include "vtkSlicerDynamicModelerCreateArrowTool.h"
+#include "vtkSlicerDynamicModelerCreateCubeTool.h"
 #include "vtkSlicerDynamicModelerToolFactory.h"
 #include "vtkSlicerDynamicModelerTool.h"
 
@@ -131,6 +133,8 @@ void vtkSlicerDynamicModelerToolFactory::classInitialize()
   vtkSlicerDynamicModelerToolFactoryInstance->RegisterDynamicModelerTool(vtkSmartPointer<vtkSlicerDynamicModelerAppendTool>::New());
   vtkSlicerDynamicModelerToolFactoryInstance->RegisterDynamicModelerTool(vtkSmartPointer<vtkSlicerDynamicModelerROICutTool>::New());
   vtkSlicerDynamicModelerToolFactoryInstance->RegisterDynamicModelerTool(vtkSmartPointer<vtkSlicerDynamicModelerSelectByPointsTool>::New());
+  vtkSlicerDynamicModelerToolFactoryInstance->RegisterDynamicModelerTool(vtkSmartPointer<vtkSlicerDynamicModelerCreateArrowTool>::New());
+  vtkSlicerDynamicModelerToolFactoryInstance->RegisterDynamicModelerTool(vtkSmartPointer<vtkSlicerDynamicModelerCreateCubeTool>::New());
 }
 
 //----------------------------------------------------------------------------

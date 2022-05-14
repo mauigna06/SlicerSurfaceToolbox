@@ -10,5 +10,7 @@
     <file>Icons/Mirror.png</file>
     <file>Icons/ROICut.png</file>
     <file>Icons/SelectByPoints.png</file>
+    <file>Icons/CreateArrow.png</file>
+    <file>Icons/CreateCube.png</file>
   </qresource>
 </RCC>

@@ -55,6 +55,8 @@
 #include <vtkSlicerDynamicModelerPlaneCutTool.h>
 #include <vtkSlicerDynamicModelerROICutTool.h>
 #include <vtkSlicerDynamicModelerSelectByPointsTool.h>
+#include <vtkSlicerDynamicModelerCreateArrowTool.h>
+#include <vtkSlicerDynamicModelerCreateCubeTool.h>
 #include <vtkSlicerDynamicModelerToolFactory.h>
 
 // DynamicModeler MRML includes
