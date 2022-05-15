@@ -22,6 +22,8 @@
 
 #include "vtkMRMLDynamicModelerNode.h"
 
+#include "vtkMRMLCrosshairDisplayableManager.h"
+
 // MRML includes
 #include <vtkMRMLMarkupsPlaneNode.h>
 #include <vtkMRMLMarkupsClosedCurveNode.h>
@@ -45,21 +47,36 @@ vtkToolNewMacro(vtkSlicerDynamicModelerArrowTool);
 
 //const char* ARROW_INPUT_MODEL_REFERENCE_ROLE = "Arrow.InputModel";
 const char* ARROW_OUTPUT_MODEL_REFERENCE_ROLE = "Arrow.OutputModel";
+const char* ARROW_OUTPUT_TRANSFORM_REFERENCE_ROLE = "Arrow.OutputTransform";
 
 //----------------------------------------------------------------------------
 vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
 {
   /////////
   // Outputs
+  vtkNew<vtkStringArray> outputModelClassNames;
+  outputModelClassNames->InsertNextValue("vtkMRMLModelNode");
   NodeInfo outputModel(
     "Arrow model",
     "Output model of an arrow according to parameters.",
-    inputModelClassNames,
+    outputModelClassNames,
     ARROW_OUTPUT_MODEL_REFERENCE_ROLE,
     false,
     false
     );
   this->OutputNodeInfo.push_back(outputModel);
+
+  vtkNew<vtkStringArray> outputTransformClassNames;
+  outputTransformClassNames->InsertNextValue("vtkMRMLLinearTransformNode");
+  NodeInfo outputTransform(
+    "Arrow Transform",
+    "Output transform of an arrow according to crosshair.",
+    outputTransformClassNames,
+    ARROW_OUTPUT_TRANSFORM_REFERENCE_ROLE,
+    false,
+    false
+    );
+  this->OutputNodeInfo.push_back(outputTransform);
 
   /////////
   // Parameters
@@ -170,6 +187,28 @@ bool vtkSlicerDynamicModelerArrowTool::RunInternal(vtkMRMLDynamicModelerNode* su
   MRMLNodeModifyBlocker blocker(outputModelNode);
   outputModelNode->SetAndObservePolyData(outputPolyData);
   outputModelNode->InvokeCustomModifiedEvent(vtkMRMLModelNode::MeshModifiedEvent);
+
+  vtkMRMLLinearTransformNode* outputTransformNode = vtkMRMLLinearTransformNode::SafeDownCast(surfaceEditorNode->GetNodeReference(ARROW_OUTPUT_TRANSFORM_REFERENCE_ROLE));
+  if (outputTransformNode)
+    {
+    vtkMRMLScene* scene = this->GetScene();
+    vtkMRMLCrosshairNode* crosshairNode = vtkMRMLCrosshairDisplayableManager::FindCrosshairNode(scene);
+    if (crosshairNode)
+      {
+      MRMLNodeModifyBlocker blocker(outputModelNode);
+      vtkMRMLLinearTransformNode* parentTransformNode = outputModelNode->GetParentTransformNode();
+      if ((outputTransformNode != parentTransformNode) || (not parentTransformNode))
+        {
+        outputModelNode->SetAndObserveTransformNodeID(outputTransformNode->GetID());
+        }
+      double *crosshairPosition = crosshairNode->GetCrosshairRAS();
+      vtkNew<vtkMatrix4x4> positionTransformMatrix;
+      positionTransformMatrix->SetElement(0,3, crosshairPosition[0]);
+      positionTransformMatrix->SetElement(1,3, crosshairPosition[1]);
+      positionTransformMatrix->SetElement(2,3, crosshairPosition[2]);
+      outputTransformNode->SetMatrixTransformToParent(positionTransformMatrix.GetPointer());
+      outputModelNode->InvokeCustomModifiedEvent(vtkMRMLModelNode::TransformModifiedEvent);
+      }
 
   return true;
 }
