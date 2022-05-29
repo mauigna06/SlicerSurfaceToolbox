@@ -58,6 +58,7 @@
 #include <vtkSlicerDynamicModelerPlaneCutTool.h>
 #include <vtkSlicerDynamicModelerROICutTool.h>
 #include <vtkSlicerDynamicModelerSelectByPointsTool.h>
+#include <vtkSlicerDynamicModelerTransformMakerTool.h>
 #include <vtkSlicerDynamicModelerCreateArrowTool.h>
 #include <vtkSlicerDynamicModelerCreateCubeTool.h>
 #include <vtkSlicerDynamicModelerToolFactory.h>
@@ -142,6 +143,9 @@ void qSlicerDynamicModelerModuleWidget::setup()
 
   vtkNew<vtkSlicerDynamicModelerSelectByPointsTool> selectByPointsTool;
   this->addToolButton(QIcon(":/Icons/SelectByPoints.png"), selectByPointsTool, buttonPosition / columns, (buttonPosition++) % columns);
+
+  vtkNew<vtkSlicerDynamicModelerTransformMakerTool> transformMakerTool;
+  this->addToolButton(QIcon(":/Icons/ROICut.png"), transformMakerTool, buttonPosition / columns, (buttonPosition++) % columns);
 
   
   std::string createGeometryMenuName = "Create Geometry";

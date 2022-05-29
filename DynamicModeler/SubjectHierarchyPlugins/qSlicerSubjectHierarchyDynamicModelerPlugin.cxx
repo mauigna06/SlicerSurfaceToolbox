@@ -39,6 +39,7 @@
 #include "vtkSlicerDynamicModelerPlaneCutTool.h"
 #include "vtkSlicerDynamicModelerROICutTool.h"
 #include "vtkSlicerDynamicModelerSelectByPointsTool.h"
+#include "vtkSlicerDynamicModelerTransformMakerTool.h"
 #include "vtkSlicerDynamicModelerCreateArrowTool.h"
 #include "vtkSlicerDynamicModelerCreateCubeTool.h"
 
@@ -264,6 +265,12 @@ QIcon qSlicerSubjectHierarchyDynamicModelerPlugin::icon(vtkIdType itemID)
   if (strcmp(associatedNode->GetToolName(), selectByPointsTool->GetName()) == 0)
     {
       return QIcon(":Icons/SelectByPoints.png");
+    }
+  
+  vtkNew<vtkSlicerDynamicModelerTransformMakerTool> transformMakerTool;
+  if (strcmp(associatedNode->GetToolName(), transformMakerTool->GetName()) == 0)
+    {
+      return QIcon(":Icons/ROICut.png");
     }
 
   vtkNew<vtkSlicerDynamicModelerCreateArrowTool> createArrowTool;
