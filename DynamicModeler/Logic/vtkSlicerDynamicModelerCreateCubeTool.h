@@ -18,8 +18,8 @@
 
 ==============================================================================*/
 
-#ifndef __vtkSlicerDynamicModelerCubeTool_h
-#define __vtkSlicerDynamicModelerCubeTool_h
+#ifndef __vtkSlicerDynamicModelerCreateCubeTool_h
+#define __vtkSlicerDynamicModelerCreateCubeTool_h
 
 #include "vtkSlicerDynamicModelerModuleLogicExport.h"
 
@@ -42,12 +42,12 @@ class vtkTransformPolyDataFilter;
 /// \brief Dynamic modeler tool for cutting a single surface mesh with planes.
 ///
 /// Has two node inputs (Plane and Surface), and two outputs (Positive/Negative direction surface segments).
-class VTK_SLICER_DYNAMICMODELER_MODULE_LOGIC_EXPORT vtkSlicerDynamicModelerCubeTool : public vtkSlicerDynamicModelerTool
+class VTK_SLICER_DYNAMICMODELER_MODULE_LOGIC_EXPORT vtkSlicerDynamicModelerCreateCubeTool : public vtkSlicerDynamicModelerTool
 {
 public:
-  static vtkSlicerDynamicModelerCubeTool* New();
+  static vtkSlicerDynamicModelerCreateCubeTool* New();
   vtkSlicerDynamicModelerTool* CreateToolInstance() override;
-  vtkTypeMacro(vtkSlicerDynamicModelerCubeTool, vtkSlicerDynamicModelerTool);
+  vtkTypeMacro(vtkSlicerDynamicModelerCreateCubeTool, vtkSlicerDynamicModelerTool);
 
   /// Human-readable name of the mesh modification tool
   const char* GetName() override;
@@ -56,9 +56,9 @@ public:
   bool RunInternal(vtkMRMLDynamicModelerNode* surfaceEditorNode) override;
 
 protected:
-  vtkSlicerDynamicModelerCubeTool();
-  ~vtkSlicerDynamicModelerCubeTool() override;
-  void operator=(const vtkSlicerDynamicModelerCubeTool&);
+  vtkSlicerDynamicModelerCreateCubeTool();
+  ~vtkSlicerDynamicModelerCreateCubeTool() override;
+  void operator=(const vtkSlicerDynamicModelerCreateCubeTool&);
 
 protected:
   vtkSmartPointer<vtkCubeSource>          CubeSourceFilter;
@@ -67,7 +67,7 @@ protected:
   //vtkSmartPointer<vtkTransformPolyDataFilter> CubeModelTransformFilter;
 
 private:
-  vtkSlicerDynamicModelerCubeTool(const vtkSlicerDynamicModelerCubeTool&) = delete;
+  vtkSlicerDynamicModelerCreateCubeTool(const vtkSlicerDynamicModelerCreateCubeTool&) = delete;
 };
 
-#endif // __vtkSlicerDynamicModelerCubeTool_h
+#endif // __vtkSlicerDynamicModelerCreateCubeTool_h

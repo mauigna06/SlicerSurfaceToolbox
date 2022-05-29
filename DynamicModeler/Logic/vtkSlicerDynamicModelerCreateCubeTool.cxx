@@ -18,7 +18,7 @@
 
 ==============================================================================*/
 
-#include "vtkSlicerDynamicModelerCubeTool.h"
+#include "vtkSlicerDynamicModelerCreateCubeTool.h"
 
 #include "vtkMRMLDynamicModelerNode.h"
 
@@ -27,7 +27,7 @@
 #include <vtkMRMLMarkupsClosedCurveNode.h>
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLSliceNode.h>
-#include <vtkMRMLTransformNode.h>
+#include <vtkMRMLLinearTransformNode.h>
 
 // VTK includes
 #include <vtkCubeSource.h>
@@ -41,21 +41,24 @@
 #include <vtkTransformPolyDataFilter.h>
 
 //----------------------------------------------------------------------------
-vtkToolNewMacro(vtkSlicerDynamicModelerCubeTool);
+vtkToolNewMacro(vtkSlicerDynamicModelerCreateCubeTool);
 
 //const char* CUBE_INPUT_MODEL_REFERENCE_ROLE = "Cube.InputModel";
 const char* CUBE_OUTPUT_MODEL_REFERENCE_ROLE = "Cube.OutputModel";
 
 //----------------------------------------------------------------------------
-vtkSlicerDynamicModelerCubeTool::vtkSlicerDynamicModelerCubeTool()
+vtkSlicerDynamicModelerCreateCubeTool::vtkSlicerDynamicModelerCreateCubeTool()
 {
   /////////
   // Outputs
+  vtkNew<vtkStringArray> inputModelClassNames;
+  inputModelClassNames->InsertNextValue("vtkMRMLModelNode");
+
   NodeInfo outputModel(
     "Cube model",
     "Output model of an cube according to parameters.",
     inputModelClassNames,
-    Cube_OUTPUT_MODEL_REFERENCE_ROLE,
+    CUBE_OUTPUT_MODEL_REFERENCE_ROLE,
     false,
     false
     );
@@ -87,7 +90,7 @@ vtkSlicerDynamicModelerCubeTool::vtkSlicerDynamicModelerCubeTool()
     50.0);
   this->InputParameterInfo.push_back(parameterZLength);
 
-  this->CubeSourceFilter = vtkSmartPointer<vtkCubePolyData>::New();
+  this->CubeSourceFilter = vtkSmartPointer<vtkCubeSource>::New();
 
   //this->CubeModelTransform = vtkSmartPointer<vtkGeneralTransform>::New();
   //this->CubeModelTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
@@ -96,17 +99,17 @@ vtkSlicerDynamicModelerCubeTool::vtkSlicerDynamicModelerCubeTool()
 }
 
 //----------------------------------------------------------------------------
-vtkSlicerDynamicModelerCubeTool::~vtkSlicerDynamicModelerCubeTool()
+vtkSlicerDynamicModelerCreateCubeTool::~vtkSlicerDynamicModelerCreateCubeTool()
 = default;
 
 //----------------------------------------------------------------------------
-const char* vtkSlicerDynamicModelerCubeTool::GetName()
+const char* vtkSlicerDynamicModelerCreateCubeTool::GetName()
 {
   return "Create Cube";
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerDynamicModelerCubeTool::RunInternal(vtkMRMLDynamicModelerNode* surfaceEditorNode)
+bool vtkSlicerDynamicModelerCreateCubeTool::RunInternal(vtkMRMLDynamicModelerNode* surfaceEditorNode)
 {
   if (!this->HasRequiredInputs(surfaceEditorNode))
     {
@@ -114,7 +117,7 @@ bool vtkSlicerDynamicModelerCubeTool::RunInternal(vtkMRMLDynamicModelerNode* sur
     return false;
     }
 
-  vtkMRMLModelNode* outputModelNode = vtkMRMLModelNode::SafeDownCast(surfaceEditorNode->GetNodeReference(Cube_OUTPUT_MODEL_REFERENCE_ROLE));
+  vtkMRMLModelNode* outputModelNode = vtkMRMLModelNode::SafeDownCast(surfaceEditorNode->GetNodeReference(CUBE_OUTPUT_MODEL_REFERENCE_ROLE));
   if (!outputModelNode)
     {
     // Nothing to output
@@ -125,13 +128,13 @@ bool vtkSlicerDynamicModelerCubeTool::RunInternal(vtkMRMLDynamicModelerNode* sur
   double YLength = this->GetNthInputParameterValue(1, surfaceEditorNode).ToDouble();
   double ZLength = this->GetNthInputParameterValue(2, surfaceEditorNode).ToDouble();
 
-  this->CubeSourceFilter->SetXLength(tipLength);
-  this->CubeSourceFilter->SetYLength(tipRadius);
-  this->CubeSourceFilter->SetZLength(tipResolution);
+  this->CubeSourceFilter->SetXLength(XLength);
+  this->CubeSourceFilter->SetYLength(YLength);
+  this->CubeSourceFilter->SetZLength(ZLength);
   //this->CubeSourceFilter->SetBounds(bounds);
   this->CubeSourceFilter->Update();
 
-  """
+  /*
   if (outputModelNode->GetParentTransformNode())
     {
     outputModelNode->GetParentTransformNode()->GetTransformFromWorld(this->OutputWorldToModelTransform);
@@ -141,7 +144,7 @@ bool vtkSlicerDynamicModelerCubeTool::RunInternal(vtkMRMLDynamicModelerNode* sur
     this->OutputWorldToModelTransform->Identity();
     }
   this->OutputWorldToModelTransformFilter->Update();
-  """
+  */
 
   vtkNew<vtkPolyData> outputPolyData;
   outputPolyData->DeepCopy(this->CubeSourceFilter->GetOutput());

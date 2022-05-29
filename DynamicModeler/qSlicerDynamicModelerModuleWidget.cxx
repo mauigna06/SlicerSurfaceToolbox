@@ -26,6 +26,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QSpinBox>
+#include <QWidgetAction>
+#include <QToolButton>
+#include <QMenu>
 
 // ctk includes
 #include <ctkDoubleSpinBox.h>
@@ -140,12 +143,16 @@ void qSlicerDynamicModelerModuleWidget::setup()
   vtkNew<vtkSlicerDynamicModelerSelectByPointsTool> selectByPointsTool;
   this->addToolButton(QIcon(":/Icons/SelectByPoints.png"), selectByPointsTool, buttonPosition / columns, (buttonPosition++) % columns);
 
+  
   std::string createGeometryMenuName = "Create Geometry";
-  QMenu* createGeometryMenu = this->addMenuButton(QIcon(":/Icons/CreateGeometry.png"), createGeometryMenuName, buttonPosition / columns, (buttonPosition++) % columns);
+  int currentColumn = (buttonPosition++) % columns;
+  this->addMenuButton(QIcon(":/Icons/CreateGeometry.png"), createGeometryMenuName, buttonPosition / columns, currentColumn);
   vtkNew<vtkSlicerDynamicModelerCreateArrowTool> createArrowTool;
-  this->addToolButtonToMenu(addGeometryMenu, QIcon(":/Icons/CreateArrow.png"), createArrowTool);
+  //this->addToolButton(QIcon(":/Icons/CreateGeometry.png"), createArrowTool, buttonPosition / columns, (buttonPosition++) % columns);
+  this->addToolButtonToMenu(buttonPosition / columns, currentColumn, QIcon(":/Icons/CreateArrow.png"), createArrowTool);
   vtkNew<vtkSlicerDynamicModelerCreateCubeTool> createCubeTool;
-  this->addToolButtonToMenu(addGeometryMenu, QIcon(":/Icons/CreateCube.png"), createCubeTool);
+  //this->addToolButton(QIcon(":/Icons/CreateGeometry.png"), createCubeTool, buttonPosition / columns, (buttonPosition++) % columns);
+  this->addToolButtonToMenu(buttonPosition / columns, currentColumn, QIcon(":/Icons/CreateCube.png"), createCubeTool);
 
   connect(d->SubjectHierarchyTreeView, SIGNAL(currentItemChanged(vtkIdType)),
     this, SLOT(onParameterNodeChanged()));
@@ -181,19 +188,19 @@ void qSlicerDynamicModelerModuleWidget::addMenuButton(QIcon icon, std::string me
 {
   Q_D(qSlicerDynamicModelerModuleWidget);
 
-  QPushButton* button = new QPushButton();
+  QToolButton* button = new QToolButton();
   button->setIcon(icon);
   button->setToolTip(menuName.c_str());
 
-  menu = new QMenu(button);
-  button->setMenu(myMenu)
-  button->setPopupMode(qt.QToolButton.MenuButtonPopup)
+  QMenu* menu = new QMenu();
+  button->setMenu(menu);
+  button->setPopupMode(QToolButton::MenuButtonPopup);
 
   d->ButtonLayout->addWidget(button, row, column);
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerDynamicModelerModuleWidget::addToolButtonToMenu(QMenu* menu, QIcon icon, vtkSlicerDynamicModelerTool* tool)
+void qSlicerDynamicModelerModuleWidget::addToolButtonToMenu(int row, int column, QIcon icon, vtkSlicerDynamicModelerTool* tool)
 {
   Q_D(qSlicerDynamicModelerModuleWidget);
   if (!tool)
@@ -201,15 +208,20 @@ void qSlicerDynamicModelerModuleWidget::addToolButtonToMenu(QMenu* menu, QIcon i
     qCritical() << "Invalid tool object!";
     }
 
+  QToolButton* toolButtonWithMenu = qobject_cast<QToolButton*>(d->ButtonLayout->itemAtPosition(row,column)->widget());
+  QMenu* menu = toolButtonWithMenu->menu();
+
   QPushButton* button = new QPushButton();
   button->setIcon(icon);
+
   if (tool->GetName())
     {
     button->setToolTip(tool->GetName());
     button->setProperty("ToolName", tool->GetName());
-    widgetAction = new QWidgetAction(menu);
-    widgetAction->setDefaultWidget(button);
     }
+
+  QWidgetAction* widgetAction = new QWidgetAction(menu);
+  widgetAction->setDefaultWidget(button);
   menu->addAction(widgetAction);
 
   connect(button, SIGNAL(clicked()), this, SLOT(onAddToolClicked()));

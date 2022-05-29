@@ -18,7 +18,7 @@
 
 ==============================================================================*/
 
-#include "vtkSlicerDynamicModelerArrowTool.h"
+#include "vtkSlicerDynamicModelerCreateArrowTool.h"
 
 #include "vtkMRMLDynamicModelerNode.h"
 
@@ -29,7 +29,8 @@
 #include <vtkMRMLMarkupsClosedCurveNode.h>
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLSliceNode.h>
-#include <vtkMRMLTransformNode.h>
+#include <vtkMRMLLinearTransformNode.h>
+#include <vtkMRMLCrosshairNode.h>
 
 // VTK includes
 #include <vtkArrowSource.h>
@@ -43,17 +44,20 @@
 #include <vtkTransformPolyDataFilter.h>
 
 //----------------------------------------------------------------------------
-vtkToolNewMacro(vtkSlicerDynamicModelerArrowTool);
+vtkToolNewMacro(vtkSlicerDynamicModelerCreateArrowTool);
 
 //const char* ARROW_INPUT_MODEL_REFERENCE_ROLE = "Arrow.InputModel";
 const char* ARROW_OUTPUT_MODEL_REFERENCE_ROLE = "Arrow.OutputModel";
 const char* ARROW_OUTPUT_TRANSFORM_REFERENCE_ROLE = "Arrow.OutputTransform";
 
 //----------------------------------------------------------------------------
-vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
+vtkSlicerDynamicModelerCreateArrowTool::vtkSlicerDynamicModelerCreateArrowTool()
 {
   /////////
   // Outputs
+  vtkNew<vtkStringArray> inputModelClassNames;
+  inputModelClassNames->InsertNextValue("vtkMRMLModelNode");
+
   vtkNew<vtkStringArray> outputModelClassNames;
   outputModelClassNames->InsertNextValue("vtkMRMLModelNode");
   NodeInfo outputModel(
@@ -85,7 +89,7 @@ vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
     "Set the length, and radius of the tip.",
     "TipLength",
     PARAMETER_DOUBLE,
-    10.0);
+    0.35);
   this->InputParameterInfo.push_back(parameterTipLength);
 
   ParameterInfo parameterTipRadius(
@@ -93,7 +97,7 @@ vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
     "Set the length, and radius of the tip.",
     "TipRadius",
     PARAMETER_DOUBLE,
-    3.0);
+    0.1);
   this->InputParameterInfo.push_back(parameterTipRadius);
 
   ParameterInfo parameterTipResolution(
@@ -101,7 +105,7 @@ vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
     "Set the resolution of the tip. The tip behaves the same as a cone.",
     "TipResolution",
     PARAMETER_INT,
-    2);
+    3);
   this->InputParameterInfo.push_back(parameterTipResolution);
 
   ParameterInfo parameterShaftRadius(
@@ -109,7 +113,7 @@ vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
     "Set the length, and radius of the tip.",
     "ShaftRadius",
     PARAMETER_DOUBLE,
-    1.0);
+    0.03);
   this->InputParameterInfo.push_back(parameterShaftRadius);
 
   ParameterInfo parameterShaftResolution(
@@ -117,12 +121,12 @@ vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
     "Set the resolution of the shaft. Minimum is 3 for a triangular shaft.",
     "ShaftResolution",
     PARAMETER_INT,
-    5);
+    3);
   this->InputParameterInfo.push_back(parameterShaftResolution);
 
   //this->ArrowMesh = vtkSmartPointer<vtkPolyData>::New();
 
-  this->ArrowSourceFilter = vtkSmartPointer<vtkArrowPolyData>::New();
+  this->ArrowSourceFilter = vtkSmartPointer<vtkArrowSource>::New();
 
   //this->ArrowModelTransform = vtkSmartPointer<vtkGeneralTransform>::New();
   //this->ArrowModelTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
@@ -131,17 +135,17 @@ vtkSlicerDynamicModelerArrowTool::vtkSlicerDynamicModelerArrowTool()
 }
 
 //----------------------------------------------------------------------------
-vtkSlicerDynamicModelerArrowTool::~vtkSlicerDynamicModelerArrowTool()
+vtkSlicerDynamicModelerCreateArrowTool::~vtkSlicerDynamicModelerCreateArrowTool()
 = default;
 
 //----------------------------------------------------------------------------
-const char* vtkSlicerDynamicModelerArrowTool::GetName()
+const char* vtkSlicerDynamicModelerCreateArrowTool::GetName()
 {
   return "Create Arrow";
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerDynamicModelerArrowTool::RunInternal(vtkMRMLDynamicModelerNode* surfaceEditorNode)
+bool vtkSlicerDynamicModelerCreateArrowTool::RunInternal(vtkMRMLDynamicModelerNode* surfaceEditorNode)
 {
   if (!this->HasRequiredInputs(surfaceEditorNode))
     {
@@ -169,7 +173,7 @@ bool vtkSlicerDynamicModelerArrowTool::RunInternal(vtkMRMLDynamicModelerNode* su
   this->ArrowSourceFilter->SetShaftResolution(shaftResolution);
   this->ArrowSourceFilter->Update();
 
-  """
+  /*
   if (outputModelNode->GetParentTransformNode())
     {
     outputModelNode->GetParentTransformNode()->GetTransformFromWorld(this->OutputWorldToModelTransform);
@@ -179,7 +183,7 @@ bool vtkSlicerDynamicModelerArrowTool::RunInternal(vtkMRMLDynamicModelerNode* su
     this->OutputWorldToModelTransform->Identity();
     }
   this->OutputWorldToModelTransformFilter->Update();
-  """
+  */
 
   vtkNew<vtkPolyData> outputPolyData;
   outputPolyData->DeepCopy(this->ArrowSourceFilter->GetOutput());
@@ -190,25 +194,26 @@ bool vtkSlicerDynamicModelerArrowTool::RunInternal(vtkMRMLDynamicModelerNode* su
 
   vtkMRMLLinearTransformNode* outputTransformNode = vtkMRMLLinearTransformNode::SafeDownCast(surfaceEditorNode->GetNodeReference(ARROW_OUTPUT_TRANSFORM_REFERENCE_ROLE));
   if (outputTransformNode)
-    {
-    vtkMRMLScene* scene = this->GetScene();
-    vtkMRMLCrosshairNode* crosshairNode = vtkMRMLCrosshairDisplayableManager::FindCrosshairNode(scene);
-    if (crosshairNode)
+  {
+      vtkMRMLScene* scene = outputModelNode->GetScene();
+      vtkMRMLCrosshairNode* crosshairNode = vtkMRMLCrosshairDisplayableManager::FindCrosshairNode(scene);
+      if (crosshairNode)
       {
-      MRMLNodeModifyBlocker blocker(outputModelNode);
-      vtkMRMLLinearTransformNode* parentTransformNode = outputModelNode->GetParentTransformNode();
-      if ((outputTransformNode != parentTransformNode) || (not parentTransformNode))
-        {
-        outputModelNode->SetAndObserveTransformNodeID(outputTransformNode->GetID());
-        }
-      double *crosshairPosition = crosshairNode->GetCrosshairRAS();
-      vtkNew<vtkMatrix4x4> positionTransformMatrix;
-      positionTransformMatrix->SetElement(0,3, crosshairPosition[0]);
-      positionTransformMatrix->SetElement(1,3, crosshairPosition[1]);
-      positionTransformMatrix->SetElement(2,3, crosshairPosition[2]);
-      outputTransformNode->SetMatrixTransformToParent(positionTransformMatrix.GetPointer());
-      outputModelNode->InvokeCustomModifiedEvent(vtkMRMLModelNode::TransformModifiedEvent);
+          MRMLNodeModifyBlocker blocker(outputModelNode);
+          vtkMRMLLinearTransformNode* parentTransformNode = vtkMRMLLinearTransformNode::SafeDownCast(outputModelNode->GetParentTransformNode());
+          if ((outputTransformNode != parentTransformNode) || (!parentTransformNode))
+          {
+              outputModelNode->SetAndObserveTransformNodeID(outputTransformNode->GetID());
+          }
+          double* crosshairPosition = crosshairNode->GetCrosshairRAS();
+          vtkNew<vtkMatrix4x4> positionTransformMatrix;
+          positionTransformMatrix->SetElement(0, 3, crosshairPosition[0]);
+          positionTransformMatrix->SetElement(1, 3, crosshairPosition[1]);
+          positionTransformMatrix->SetElement(2, 3, crosshairPosition[2]);
+          outputTransformNode->SetMatrixTransformToParent(positionTransformMatrix.GetPointer());
+          outputModelNode->InvokeCustomModifiedEvent(vtkMRMLModelNode::TransformModifiedEvent);
       }
+  }
 
   return true;
 }

@@ -18,8 +18,8 @@
 
 ==============================================================================*/
 
-#ifndef __vtkSlicerDynamicModelerArrowTool_h
-#define __vtkSlicerDynamicModelerArrowTool_h
+#ifndef __vtkSlicerDynamicModelerCreateArrowTool_h
+#define __vtkSlicerDynamicModelerCreateArrowTool_h
 
 #include "vtkSlicerDynamicModelerModuleLogicExport.h"
 
@@ -42,12 +42,12 @@ class vtkTransformPolyDataFilter;
 /// \brief Dynamic modeler tool for cutting a single surface mesh with planes.
 ///
 /// Has two node inputs (Plane and Surface), and two outputs (Positive/Negative direction surface segments).
-class VTK_SLICER_DYNAMICMODELER_MODULE_LOGIC_EXPORT vtkSlicerDynamicModelerArrowTool : public vtkSlicerDynamicModelerTool
+class VTK_SLICER_DYNAMICMODELER_MODULE_LOGIC_EXPORT vtkSlicerDynamicModelerCreateArrowTool : public vtkSlicerDynamicModelerTool
 {
 public:
-  static vtkSlicerDynamicModelerArrowTool* New();
+  static vtkSlicerDynamicModelerCreateArrowTool* New();
   vtkSlicerDynamicModelerTool* CreateToolInstance() override;
-  vtkTypeMacro(vtkSlicerDynamicModelerArrowTool, vtkSlicerDynamicModelerTool);
+  vtkTypeMacro(vtkSlicerDynamicModelerCreateArrowTool, vtkSlicerDynamicModelerTool);
 
   /// Human-readable name of the mesh modification tool
   const char* GetName() override;
@@ -56,9 +56,9 @@ public:
   bool RunInternal(vtkMRMLDynamicModelerNode* surfaceEditorNode) override;
 
 protected:
-  vtkSlicerDynamicModelerArrowTool();
-  ~vtkSlicerDynamicModelerArrowTool() override;
-  void operator=(const vtkSlicerDynamicModelerArrowTool&);
+  vtkSlicerDynamicModelerCreateArrowTool();
+  ~vtkSlicerDynamicModelerCreateArrowTool() override;
+  void operator=(const vtkSlicerDynamicModelerCreateArrowTool&);
 
 protected:
   vtkSmartPointer<vtkArrowSource>          ArrowSourceFilter;
@@ -67,7 +67,7 @@ protected:
   //vtkSmartPointer<vtkTransformPolyDataFilter> ArrowModelTransformFilter;
 
 private:
-  vtkSlicerDynamicModelerArrowTool(const vtkSlicerDynamicModelerArrowTool&) = delete;
+  vtkSlicerDynamicModelerCreateArrowTool(const vtkSlicerDynamicModelerCreateArrowTool&) = delete;
 };
 
-#endif // __vtkSlicerDynamicModelerArrowTool_h
+#endif // __vtkSlicerDynamicModelerCreateArrowTool_h
