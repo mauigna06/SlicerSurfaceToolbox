@@ -25,6 +25,7 @@
 #include <vtkSmartPointer.h>
 
 class vtkGeneralTransform;
+class vtkMRMLMarkupsNode;
 class vtkMRMLMarkupsFiducialNode;
 class vtkMRMLMarkupsAngleNode;
 class vtkMRMLMarkupsPlaneNode;

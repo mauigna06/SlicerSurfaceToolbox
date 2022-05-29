@@ -21,13 +21,16 @@
 #include "vtkMRMLDynamicModelerNode.h"
 
 // MRML includes
-//#include <vtkMRMLMarkupsFiducialNode.h>
-//#include <vtkMRMLModelNode.h>
-//#include <vtkMRMLTransformNode.h>
+#include <vtkMRMLMarkupsNode.h>
+#include <vtkMRMLMarkupsFiducialNode.h>
+#include <vtkMRMLMarkupsAngleNode.h>
+#include <vtkMRMLMarkupsPlaneNode.h>
+#include <vtkMRMLLinearTransformNode.h>
 //#include <vtkMRMLModelDisplayNode.h>
 //#include <vtkMRMLCrosshairNode.h>
 
 // VTK includes
+#include <vtkMath.h>
 #include <vtkAssignAttribute.h>
 #include <vtkCommand.h>
 //#include <vtkGeneralTransform.h>
@@ -70,7 +73,7 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
   /////////
   // Outputs
   vtkNew<vtkStringArray> outputTransformFiducialClassNames;
-  outputTransformSourcesClassNames->InsertNextValue("vtkMRMLMarkupsFiducialNode");
+  outputTransformFiducialClassNames->InsertNextValue("vtkMRMLMarkupsFiducialNode");
   vtkNew<vtkStringArray> outputTransformAngleClassNames;
   outputTransformAngleClassNames->InsertNextValue("vtkMRMLMarkupsAngleNode");
   vtkNew<vtkStringArray> outputTransformPlaneClassNames;
@@ -79,9 +82,9 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
   outputTransformLinearTransformClassNames->InsertNextValue("vtkMRMLLinearTransformNode");
 
   NodeInfo outputFiducial(
-    "Final transform position.",
+    "Final transform position",
     "Fiducial list with only one node corresponding to the translation part of the final transform.",
-    outputTransformSourcesClassNames,
+      outputTransformFiducialClassNames,
     TRANSFORM_MAKER_OUTPUT_FIDUCIAL_REFERENCE_ROLE,
     false,
     false
@@ -89,7 +92,7 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
   this->OutputNodeInfo.push_back(outputFiducial);
 
   NodeInfo outputAngle(
-    "Full final transform.",
+    "Final transform angle",
     "Final transform represented as angle, the axis of rotation goes throw second point of the angle and it's normal to it.",
     outputTransformAngleClassNames,
     TRANSFORM_MAKER_OUTPUT_ANGLE_REFERENCE_ROLE,
@@ -99,7 +102,7 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
   this->OutputNodeInfo.push_back(outputAngle);
 
   NodeInfo outputPlane(
-    "Full final transform.",
+    "Final transform frame",
     "Final transform represented as plane/frame. The axes are aligned with the final rotation transform part and the origin coincides with the final translation transform part.",
     outputTransformPlaneClassNames,
     TRANSFORM_MAKER_OUTPUT_PLANE_REFERENCE_ROLE,
@@ -109,7 +112,7 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
   this->OutputNodeInfo.push_back(outputPlane);
 
   NodeInfo outputLinearTransform(
-    "Full final transform.",
+    "Full final transform",
     "Final transform represented as a matrix4x4 inside this node.",
     outputTransformLinearTransformClassNames,
     TRANSFORM_MAKER_OUTPUT_LINEAR_TRANSFORM_ROLE,
@@ -120,14 +123,6 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
 
   /////////
   // Parameters
-  ParameterInfo parameterSelectionDistance(
-    "Selection distance",
-    "Selection distance of model's points to input fiducials.",
-    "SelectionDistance",
-    PARAMETER_DOUBLE,
-    5.0);
-  this->InputParameterInfo.push_back(parameterSelectionDistance);
-
   ParameterInfo parameterUseParentTranforms(
     "Use parentTransforms?",
     "Choose if you want parent transforms to be ignored.",
@@ -136,10 +131,10 @@ vtkSlicerDynamicModelerTransformMakerTool::vtkSlicerDynamicModelerTransformMaker
     "Ignore ParentTransforms");
 
   vtkNew<vtkStringArray> possibleValues;
-  parameterSelectionAlgorithm.PossibleValues = possibleValues;
-  parameterSelectionAlgorithm.PossibleValues->InsertNextValue("Ignore ParentTransforms");
-  parameterSelectionAlgorithm.PossibleValues->InsertNextValue("Use ParentTransforms");
-  this->InputParameterInfo.push_back(parameterSelectionAlgorithm);
+  parameterUseParentTranforms.PossibleValues = possibleValues;
+  parameterUseParentTranforms.PossibleValues->InsertNextValue("Ignore ParentTransforms");
+  parameterUseParentTranforms.PossibleValues->InsertNextValue("Use ParentTransforms");
+  this->InputParameterInfo.push_back(parameterUseParentTranforms);
 
   this->OutputTransform = vtkSmartPointer<vtkTransform>::New();
   this->OutputTransform->PostMultiply();
@@ -168,7 +163,7 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
   vtkMRMLMarkupsFiducialNode* outputFiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(surfaceEditorNode->GetNodeReference(TRANSFORM_MAKER_OUTPUT_FIDUCIAL_REFERENCE_ROLE));
   vtkMRMLMarkupsAngleNode* outputAngleNode = vtkMRMLMarkupsAngleNode::SafeDownCast(surfaceEditorNode->GetNodeReference(TRANSFORM_MAKER_OUTPUT_ANGLE_REFERENCE_ROLE));
   vtkMRMLMarkupsPlaneNode* outputPlaneNode = vtkMRMLMarkupsPlaneNode::SafeDownCast(surfaceEditorNode->GetNodeReference(TRANSFORM_MAKER_OUTPUT_PLANE_REFERENCE_ROLE));
-  vtkMRMLLinearTransformNode* outputLinearTransformNode = vtkMRMLModelNode::SafeDownCast(surfaceEditorNode->GetNodeReference(TRANSFORM_MAKER_OUTPUT_LINEAR_TRANSFORM_ROLE));
+  vtkMRMLLinearTransformNode* outputLinearTransformNode = vtkMRMLLinearTransformNode::SafeDownCast(surfaceEditorNode->GetNodeReference(TRANSFORM_MAKER_OUTPUT_LINEAR_TRANSFORM_ROLE));
   
   if (!outputFiducialNode && !outputAngleNode && !outputPlaneNode && !outputLinearTransformNode)
     {
@@ -188,8 +183,8 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
   bool useParentTransformsBool = useParentTransforms == "Use ParentTransforms";
 
   //this->AppendFilter->RemoveAllInputs();
-  this->OutputTransform->Identity()
-  for (int i = 0; i < numberOfInputNodes; ++i)
+  this->OutputTransform->Identity();
+  for (int i = 0; i < numberOfInputNodes; i++)
     {
     vtkMRMLNode* mrmlNode = surfaceEditorNode->GetNthNodeReference(TRANSFORM_MAKER_INPUT_TRANSFORM_SOURCE_REFERENCE_ROLE, i);
     
@@ -210,32 +205,51 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
             {
             inputNode->GetNthControlPointPosition(0,position);
             }
-        this->OutputTransform->Translate(position)
+        this->OutputTransform->Translate(position);
         }
-    elif (mrmlNode && mrmlNode->IsA("vtkMRMLMarkupsAngleNode"))
-        {
+    else if (mrmlNode && mrmlNode->IsA("vtkMRMLMarkupsAngleNode"))
+    {
         vtkMRMLMarkupsAngleNode* inputNode = vtkMRMLMarkupsAngleNode::SafeDownCast(mrmlNode);
         if (inputNode->GetNumberOfControlPoints() != 3)
         {
-        // Nothing to output
-        continue;
+            // Nothing to output
+            continue;
         }
+        double pt0[3] = { 0.0, 0.0, 0.0 };
+        double pt1[3] = { 0.0, 0.0, 0.0 };
+        double pt2[3] = { 0.0, 0.0, 0.0 };
         double rotationAxis[3] = { 0.0, 0.0, 0.0 };
-        inputNode->GetOrientationRotationAxis(rotationAxis);
-        double angleDegrees = inputNode->GetAngleDegrees();
-        this->OutputTransform->RotateWXYZ(angleDegrees,rotationAxis)
+        
         if (useParentTransformsBool)
             {
-                vtkMRMLLinearTransformNode* parentTransformNode = inputNode->GetParentTransformNode()
-                if (parentTransformNode)
-                    {
-                    vtkMatrix4x4 *parentTransformMatrix = vtkMatrix4x4::New();
-                    parentTransformNode->GetMatrixTransformToWorld(parentTransformMatrix);
-                    this->OutputTransform->Concatenate(parentTransformMatrix)
-                    }
+            inputNode->GetNthControlPointPositionWorld(0, pt0);
+            inputNode->GetNthControlPointPositionWorld(1, pt1);
+            inputNode->GetNthControlPointPositionWorld(2, pt2);
             }
+        else
+            {
+            inputNode->GetNthControlPointPosition(0, pt0);
+            inputNode->GetNthControlPointPosition(1, pt1);
+            inputNode->GetNthControlPointPosition(2, pt2);
+            }
+
+        double pt2_1[3] = { 0.0, 0.0, 0.0 };
+        pt2_1[0] = pt2[0] - pt1[0];
+        pt2_1[1] = pt2[1] - pt1[1];
+        pt2_1[2] = pt2[2] - pt1[2];
+
+        double pt0_1[3] = { 0.0, 0.0, 0.0 };
+        pt0_1[0] = pt0[0] - pt1[0];
+        pt0_1[1] = pt0[1] - pt1[1];
+        pt0_1[2] = pt0[2] - pt1[2];
+
+        vtkMath::Cross(pt0_1, pt2_1, rotationAxis);
+        vtkMath::Normalize(rotationAxis);
+
+        double angleDegrees = inputNode->GetAngleDegrees();
+        this->OutputTransform->RotateWXYZ(angleDegrees, rotationAxis);
         }
-    elif (mrmlNode && mrmlNode->IsA("vtkMRMLMarkupsPlaneNode"))
+    else if (mrmlNode && mrmlNode->IsA("vtkMRMLMarkupsPlaneNode"))
         {
         vtkMRMLMarkupsPlaneNode* inputNode = vtkMRMLMarkupsPlaneNode::SafeDownCast(mrmlNode);
         if (inputNode->GetNumberOfControlPoints() != 3)
@@ -246,15 +260,15 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
         vtkMatrix4x4 *planeMatrix = vtkMatrix4x4::New();
         if (useParentTransformsBool)
             {
-            inputNode->GetObjectToWorldMatrix(planeMatrix)
+            inputNode->GetObjectToWorldMatrix(planeMatrix);
             }
         else
             {
-            inputNode->GetObjectToNodeMatrix(planeMatrix)
+            inputNode->GetObjectToNodeMatrix(planeMatrix);
             }
-        this->OutputTransform->Concatenate(planeMatrix)
+        this->OutputTransform->Concatenate(planeMatrix);
         }
-    elif (mrmlNode && mrmlNode->IsA("vtkMRMLLinearTransformNode"))
+    else if (mrmlNode && mrmlNode->IsA("vtkMRMLLinearTransformNode"))
         {
         vtkMRMLLinearTransformNode* inputNode = vtkMRMLLinearTransformNode::SafeDownCast(mrmlNode);
         //if (inputNode->GetNumberOfControlPoints() != 3)
@@ -271,7 +285,7 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
             {
             inputNode->GetMatrixTransformToParent(linearTransformMatrix);
             }
-        this->OutputTransform->Concatenate(linearTransformMatrix)
+        this->OutputTransform->Concatenate(linearTransformMatrix);
         }
     else
         {
@@ -291,7 +305,7 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
   bool computePlane = (outputPlaneNode != nullptr);
   bool computeLinearTransform = (outputLinearTransformNode != nullptr);
 
-  this->OutputTransform->GetMatrix(this->OutputMatrix)
+  this->OutputTransform->GetMatrix(this->OutputMatrix);
   if (computeFiducialPoint)
     {
     double ctp[3] = { 0, 0, 0};
@@ -320,9 +334,9 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
 
     this->OutputTransform->TransformVector(xVector,xVector);
 
-    ctp2[0] = xVector[0] + ctp0[0];
-    ctp2[1] = xVector[1] + ctp0[1];
-    ctp2[2] = xVector[2] + ctp0[2];
+    ctp2[0] = xVector[0] + ctp1[0];
+    ctp2[1] = xVector[1] + ctp1[1];
+    ctp2[2] = xVector[2] + ctp1[2];
 
     MRMLNodeModifyBlocker blocker(outputAngleNode);
     outputAngleNode->RemoveAllControlPoints();
@@ -343,7 +357,7 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
     this->OutputTransform->TransformPoint(ctp2,ctp2);
 
     MRMLNodeModifyBlocker blocker(outputPlaneNode);
-    outputPlaneNode->SetPlaneType(vtkMRMLMarkupsPlaneNode::PlaneType3Points)
+    outputPlaneNode->SetPlaneType(vtkMRMLMarkupsPlaneNode::PlaneType3Points);
     outputPlaneNode->RemoveAllControlPoints();
     outputPlaneNode->AddControlPoint(ctp0);
     outputPlaneNode->AddControlPoint(ctp1);
@@ -355,7 +369,7 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
     {
     MRMLNodeModifyBlocker blocker(outputLinearTransformNode);
     outputLinearTransformNode->SetMatrixTransformToParent(this->OutputMatrix);
-    outputAngleNode->InvokeCustomModifiedEvent(vtkMRMLLinearTransformNode::TransformModifiedEvent);
+    outputLinearTransformNode->InvokeCustomModifiedEvent(vtkMRMLLinearTransformNode::TransformModifiedEvent);
     }
 
     return true;
