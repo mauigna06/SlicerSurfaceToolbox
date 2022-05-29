@@ -309,10 +309,20 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
     double ctp0[3] = { 50, 0, 0};
     double ctp1[3] = { 0, 0, 0};
     double ctp2[3] = { 0, 50, 0};
-    
+    double xVector[3] = { 0, 0, 0};
+
     this->OutputTransform->TransformPoint(ctp0,ctp0);
     this->OutputTransform->TransformPoint(ctp1,ctp1);
-    this->OutputTransform->TransformPoint(ctp2,ctp2);
+
+    xVector[0] = ctp0[0] - ctp1[0];
+    xVector[1] = ctp0[1] - ctp1[1];
+    xVector[2] = ctp0[2] - ctp1[2];
+
+    this->OutputTransform->TransformVector(xVector,xVector);
+
+    ctp2[0] = xVector[0] + ctp0[0];
+    ctp2[1] = xVector[1] + ctp0[1];
+    ctp2[2] = xVector[2] + ctp0[2];
 
     MRMLNodeModifyBlocker blocker(outputAngleNode);
     outputAngleNode->RemoveAllControlPoints();
