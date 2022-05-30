@@ -33,6 +33,7 @@ class vtkMRMLLinearTransformNode;
 class vtkPolyData;
 class vtkTransform;
 class vtkMatrix4x4;
+class vtkMatrix3x3;
 
 #include "vtkSlicerDynamicModelerTool.h"
 
@@ -65,6 +66,7 @@ protected:
 
 private:
   vtkSlicerDynamicModelerTransformMakerTool(const vtkSlicerDynamicModelerTransformMakerTool&) = delete;
+  //double rotation_from_matrix(vtkMatrix4x4 *matrix, double *axis, double *point);
 };
 
 #endif // __vtkSlicerDynamicModelerTransformMakerTool_h

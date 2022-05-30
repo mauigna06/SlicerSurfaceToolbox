@@ -35,6 +35,7 @@
 #include <vtkCommand.h>
 //#include <vtkGeneralTransform.h>
 #include <vtkTransform.h>
+#include <vtkMatrix3x3.h>
 
 //----------------------------------------------------------------------------
 vtkToolNewMacro(vtkSlicerDynamicModelerTransformMakerTool);
@@ -246,13 +247,14 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
         vtkMath::Cross(pt0_1, pt2_1, rotationAxis);
         vtkMath::Normalize(rotationAxis);
 
-        double angleDegrees = inputNode->GetAngleDegrees();
+        double angleRadians = vtkMath::SignedAngleBetweenVectors(pt0_1, pt2_1, rotationAxis);
+        double angleDegrees = vtkMath::DegreesFromRadians(angleRadians);
         this->OutputTransform->RotateWXYZ(angleDegrees, rotationAxis);
         }
     else if (mrmlNode && mrmlNode->IsA("vtkMRMLMarkupsPlaneNode"))
         {
         vtkMRMLMarkupsPlaneNode* inputNode = vtkMRMLMarkupsPlaneNode::SafeDownCast(mrmlNode);
-        if (inputNode->GetNumberOfControlPoints() != 3)
+        if (!inputNode->GetIsPlaneValid())
         {
         // Nothing to output
         continue;
@@ -320,29 +322,53 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
 
   if (computeAngle)
     {
-    double ctp0[3] = { 50, 0, 0};
-    double ctp1[3] = { 0, 0, 0};
-    double ctp2[3] = { 0, 50, 0};
-    double xVector[3] = { 0, 0, 0};
+    double addd[4];
+    this->OutputTransform->GetOrientationWXYZ(addd);
 
-    this->OutputTransform->TransformPoint(ctp0,ctp0);
-    this->OutputTransform->TransformPoint(ctp1,ctp1);
+    double ctp1[3] = { 0, 0, 0 };
+    if (outputAngleNode->GetNumberOfControlPoints() > 1)
+        {
+        outputAngleNode->GetNthControlPointPosition(1,ctp1);
+        }
 
-    xVector[0] = ctp0[0] - ctp1[0];
-    xVector[1] = ctp0[1] - ctp1[1];
-    xVector[2] = ctp0[2] - ctp1[2];
+    double axis[3] = { 0.0, 0.0, 0.0 };
+    double angle = addd[0];
+    axis[0] = addd[1];
+    axis[1] = addd[2];
+    axis[2] = addd[3];
+    
+    double ctp0[3] = { 0, 0, 0};
+    vtkMath::Perpendiculars(axis,ctp0,nullptr,0);
+    vtkMath::Normalize(ctp0);
+    vtkMath::MultiplyScalar(ctp0,50);
 
-    this->OutputTransform->TransformVector(xVector,xVector);
+    double ctp0_aux[4] = { 0, 0, 0, 0};
+    for(int i=0; i<3; i++)
+      {
+      ctp0_aux[i] = ctp0[i];
+      }
 
-    ctp2[0] = xVector[0] + ctp1[0];
-    ctp2[1] = xVector[1] + ctp1[1];
-    ctp2[2] = xVector[2] + ctp1[2];
+    double ctp2_aux[4] = { 0, 0, 0, 0};
+    this->OutputMatrix->MultiplyPoint(ctp0_aux,ctp2_aux);
+
+    double ctp2[3] = { 0, 0, 0};
+    for(int i=0; i<3; i++)
+      {
+      ctp2[i] = ctp2_aux[i];
+      }
+
+    vtkMath::Add(ctp1,ctp0,ctp0);
+    vtkMath::Add(ctp1,ctp2,ctp2);
 
     MRMLNodeModifyBlocker blocker(outputAngleNode);
+    //outputAngleNode->SetAngleMeasurementModeToOrientedSigned();
     outputAngleNode->RemoveAllControlPoints();
+    //if (abs(abs(addd[0]) - abs(angle)) < 1)
+    //    {
     outputAngleNode->AddControlPoint(ctp0);
     outputAngleNode->AddControlPoint(ctp1);
     outputAngleNode->AddControlPoint(ctp2);
+    //    }
     outputAngleNode->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointModifiedEvent);
     }
 
@@ -374,3 +400,135 @@ bool vtkSlicerDynamicModelerTransformMakerTool::RunInternal(vtkMRMLDynamicModele
 
     return true;
 }
+
+/*
+double vtkSlicerDynamicModelerTransformMakerTool::rotation_from_matrix(vtkMatrix4x4 *matrix,double *axis, double *point)
+{
+    /*
+    Return rotation angle and axis from rotation matrix.
+
+    >>> angle = (random.random() - 0.5) * (2*math.pi)
+    >>> direc = np.random.random(3) - 0.5
+    >>> point = np.random.random(3) - 0.5
+    >>> R0 = rotation_matrix(angle, direc, point)
+    >>> angle, direc, point = rotation_from_matrix(R0)
+    >>> R1 = rotation_matrix(angle, direc, point)
+    >>> is_same_transform(R0, R1)
+    True
+
+    double R[3][3];
+    double I[3][3];
+    for(int i=0; i<3; i++)
+      {
+      for(int j=0; j<3; j++)
+        {
+        R[i][j] = matrix->GetElement(i,j);
+        if (i==j)
+          {
+          I[i][j] = 1;
+          }
+        else
+          {
+          I[i][j] = 0;
+          }
+        }
+      }
+
+    //R = vtkMatrix3x3;
+    //R = np.array(matrix, dtype=np.float64, copy=False)
+    //R33 = R[:3, :3]
+
+    // direction: unit eigenvector of R33 corresponding to eigenvalue of 1
+    double eigvals[3];
+    double eigvecs[3][3];
+    vtkMath::Diagonalize3x3(R,eigvals,eigvecs);
+    int minimumIndex = 0;
+    double minimumDifference = 1e20;
+    double currentDifference = 0;
+    for(int i=0; i<3; i++)
+      {
+      currentDifference = abs(eigvals[i]-1);
+      if (currentDifference < minimumDifference)
+        {
+        minimumIndex = i;
+        minimumDifference = currentDifference;
+        }
+      }
+
+    for(int i=0; i<3; i++)
+      {
+      axis[i] = eigvecs[i][minimumIndex];
+      } 
+
+    //l, W = np.linalg.eig(R33.T)
+    //i = np.where(abs(np.real(l) - 1.0) < 1e-8)[0]
+    //if not len(i):
+    //    raise ValueError("no unit eigenvector corresponding to eigenvalue 1")
+    //direction = np.real(W[:, i[-1]]).squeeze()
+    
+    // point: unit eigenvector of R33 corresponding to eigenvalue of 1
+
+    double translation[3];
+    vtkMatrix3x3 *ImR_inv = vtkMatrix3x3::New();
+    for(int i=0; i<3; i++)
+      {
+      for(int j=0; j<3; j++)
+        {
+        ImR_inv->SetElement(i,j,I[i][j] - R[i][j]);
+        }
+      translation[i] = matrix->GetElement(i,3);
+      }
+    
+    ImR_inv->Invert();
+    ImR_inv->MultiplyPoint(translation, point);
+
+    /*
+    double diffTranslationPoint[3];
+    vtkMath::Subtract(translation,point,diffTranslationPoint);
+
+    double normalVector[3];
+    vtkMath::Cross(diffTranslationPoint,axis,normalVector);
+    double quadratureComponent = vtkMath::Norm(normalVector,3);
+    vtkMath::Normalize(diffTranslationPoint);
+    vtkMath::MultiplyScalar(diffTranslationPoint,quadratureComponent);
+    vtkMath::Subtract(translation,diffTranslationPoint,point);
+ 
+
+    //l, Q = np.linalg.eig(R)
+    //i = np.where(abs(np.real(l) - 1.0) < 1e-8)[0]
+    //if not len(i):
+    //    raise ValueError("no unit eigenvector corresponding to eigenvalue 1")
+    //point = np.real(Q[:, i[-1]]).squeeze()
+    //point /= point[3]
+    //# rotation angle depending on direction
+
+    double cosa = (R[0][0]+R[1][1]+R[2][2]-1)/2.0;
+    double sina;
+    if (abs(axis[2]) > 1e-8)
+      {
+      sina = (R[1][0] + (cosa - 1.0) * axis[0] * axis[1]) / axis[2];
+      }
+    else if (abs(axis[1]) > 1e-8)
+      {
+      sina = (R[0][2] + (cosa - 1.0) * axis[0] * axis[2]) / axis[1];
+      }
+    else
+      {
+      sina = (R[2][1] + (cosa - 1.0) * axis[1] * axis[2]) / axis[0];
+      }
+    
+    double angle = atan2(sina, cosa);
+    
+    //cosa = (np.trace(R33) - 1.0) / 2.0
+    //if abs(direction[2]) > 1e-8:
+    //    sina = (R[1, 0] + (cosa - 1.0) * direction[0] * direction[1]) / direction[2]
+    //elif abs(direction[1]) > 1e-8:
+    //    sina = (R[0, 2] + (cosa - 1.0) * direction[0] * direction[2]) / direction[1]
+    //else:
+    //    sina = (R[2, 1] + (cosa - 1.0) * direction[1] * direction[2]) / direction[0]
+    //angle = math.atan2(sina, cosa)
+    
+    return angle;
+}
+
+*/
