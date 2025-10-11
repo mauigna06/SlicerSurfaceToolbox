@@ -36,6 +36,8 @@ set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}ExtrudeTool.h
   vtkSlicer${MODULE_NAME}RemeshTool.cxx
   vtkSlicer${MODULE_NAME}RemeshTool.h
+  vtkSlicerIsotropicRemesher.cxx
+  vtkSlicerIsotropicRemesher.h
   vtkSlicer${MODULE_NAME}RevolveTool.cxx
   vtkSlicer${MODULE_NAME}RevolveTool.h
   vtkSlicer${MODULE_NAME}HollowTool.cxx
