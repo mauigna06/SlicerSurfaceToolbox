@@ -5,7 +5,7 @@ set(KIT ${PROJECT_NAME})
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
 add_subdirectory(FastMarching)
-add_subdirectory(BotschKobbeltRemesh)
+add_subdirectory(GpyRemesher)
 
 #
 # vtkAddon
@@ -19,7 +19,8 @@ set(${KIT}_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/gw_geodesic
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/gw_core
-  ${CMAKE_CURRENT_SOURCE_DIR}/BotschKobbeltRemesh
+  ${CMAKE_CURRENT_SOURCE_DIR}/gpytoolbox/src/cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/gpytoolbox/src/cpp/remesher
   )
 
 set(${KIT}_SRCS
@@ -69,7 +70,7 @@ set(${KIT}_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleMRML
   vtkAddon
   MeshGeodesics
-  BotschKobbeltRemesh
+  GpyRemesher
   )
 
 #-----------------------------------------------------------------------------

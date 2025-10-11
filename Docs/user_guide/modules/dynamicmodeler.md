@@ -54,10 +54,9 @@ Run isotropic surface remeshing based on the Botsch et al. algorithm to equalize
 
 Parameters:
 
-* **Target edge length** – Desired average triangle edge length. Leave at 0 to reuse the input mesh average.
-* **Iterations** – Number of remeshing passes. Each pass performs edge split/collapse, edge flipping, tangential relaxation, and projection.
-* **Tangential relaxation** – Strength of smoothing along the surface tangent (0 disables smoothing, 1 applies full Laplacian relaxation).
-* **Preserve boundaries** – Prevents edge collapses and flips along model boundaries.
+* **Iterations** – Number of remeshing passes (default 10). Each pass performs edge split/collapse, edge flipping, smoothing, and projection when enabled.
+* **Target edge length** – Desired average triangle edge length (default 0.1). Set to 0 to reuse the input mesh average.
+* **Project to input** – Reprojects vertices back to the input surface after each iteration (enabled by default). Disable to allow the mesh to drift during smoothing.
 
 ### SelectByPoints
 
