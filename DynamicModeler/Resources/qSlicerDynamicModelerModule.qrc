@@ -12,5 +12,6 @@
     <file>Icons/Mirror.png</file>
     <file>Icons/ROICut.png</file>
     <file>Icons/SelectByPoints.png</file>
+    <file>Icons/Remesh.png</file>
   </qresource>
 </RCC>

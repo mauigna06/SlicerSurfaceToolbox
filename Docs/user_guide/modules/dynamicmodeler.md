@@ -48,6 +48,17 @@ Notes:
 
 Reflect the points in a model across the input plane. Useful in conjunction with the plane cut tool to cut a model in half and then mirror the selected half accross the cutting plane.
 
+### Remesh
+
+Run isotropic surface remeshing based on the Botsch et al. algorithm to equalize triangle edge lengths while preserving the original shape.
+
+Parameters:
+
+* **Target edge length** – Desired average triangle edge length. Leave at 0 to reuse the input mesh average.
+* **Iterations** – Number of remeshing passes. Each pass performs edge split/collapse, edge flipping, tangential relaxation, and projection.
+* **Tangential relaxation** – Strength of smoothing along the surface tangent (0 disables smoothing, 1 applies full Laplacian relaxation).
+* **Preserve boundaries** – Prevents edge collapses and flips along model boundaries.
+
 ### SelectByPoints
 
 Allow selecting region(s) of a model node by specifying by markups fiducial points. Model points that are closer to the points than the specified selection distance are selected.

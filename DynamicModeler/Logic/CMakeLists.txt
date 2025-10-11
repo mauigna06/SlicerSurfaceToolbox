@@ -5,6 +5,7 @@ set(KIT ${PROJECT_NAME})
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
 add_subdirectory(FastMarching)
+add_subdirectory(BotschKobbeltRemesh)
 
 #
 # vtkAddon
@@ -18,6 +19,7 @@ set(${KIT}_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/gw_geodesic
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/gw_core
+  ${CMAKE_CURRENT_SOURCE_DIR}/BotschKobbeltRemesh
   )
 
 set(${KIT}_SRCS
@@ -31,6 +33,8 @@ set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}CurveCutTool.h
   vtkSlicer${MODULE_NAME}ExtrudeTool.cxx
   vtkSlicer${MODULE_NAME}ExtrudeTool.h
+  vtkSlicer${MODULE_NAME}RemeshTool.cxx
+  vtkSlicer${MODULE_NAME}RemeshTool.h
   vtkSlicer${MODULE_NAME}RevolveTool.cxx
   vtkSlicer${MODULE_NAME}RevolveTool.h
   vtkSlicer${MODULE_NAME}HollowTool.cxx
@@ -59,12 +63,15 @@ set(${KIT}_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/vtkPolyDataGeodesicDistance.h
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/vtkPolygonalSurfaceContourLineInterpolator2.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/vtkPolygonalSurfaceContourLineInterpolator2.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/BotschKobbeltRemesh/RemeshMesh.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/BotschKobbeltRemesh/RemeshMesh.h
   )
 
 set(${KIT}_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleMRML
   vtkAddon
   MeshGeodesics
+  RemeshLibraries
   )
 
 #-----------------------------------------------------------------------------
