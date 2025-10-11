@@ -88,7 +88,7 @@ vtkSlicerDynamicModelerRemeshTool::vtkSlicerDynamicModelerRemeshTool()
     "Number of remeshing iterations to perform.",
     REMESH_ITERATION_COUNT_ATTRIBUTE,
     PARAMETER_INT,
-    10,
+    3,
     0,
     1.0);
   iterationCount.NumbersRange->SetValue(0, 1.0);
@@ -100,7 +100,7 @@ vtkSlicerDynamicModelerRemeshTool::vtkSlicerDynamicModelerRemeshTool()
     "Desired edge length for the isotropic remeshing. Set to 0 to use the average edge length of the input.",
     REMESH_TARGET_EDGE_LENGTH_ATTRIBUTE,
     PARAMETER_DOUBLE,
-    0.1,
+    0.0,
     3,
     0.1);
   targetEdgeLength.NumbersRange->SetValue(0, 0.0);
@@ -112,7 +112,7 @@ vtkSlicerDynamicModelerRemeshTool::vtkSlicerDynamicModelerRemeshTool()
     "Project vertices back to the input surface after each iteration to keep the shape from drifting.",
     REMESH_PROJECT_ATTRIBUTE,
     PARAMETER_BOOL,
-    true);
+    false);
   this->InputParameterInfo.push_back(projectToInput);
 
   this->InputModelNodeToWorldTransform = vtkSmartPointer<vtkGeneralTransform>::New();
