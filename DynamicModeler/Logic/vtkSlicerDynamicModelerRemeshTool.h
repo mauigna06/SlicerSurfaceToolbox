@@ -27,7 +27,6 @@
 class vtkGeneralTransform;
 class vtkMRMLDynamicModelerNode;
 class vtkTransformPolyDataFilter;
-class RemeshMesh;
 
 // MRML includes
 #include <vtkMRMLModelNode.h>
@@ -60,8 +59,6 @@ protected:
 protected:
   vtkSmartPointer<vtkTransformPolyDataFilter> InputModelToWorldTransformFilter;
   vtkSmartPointer<vtkGeneralTransform> InputModelNodeToWorldTransform;
-
-  vtkSmartPointer<RemeshMesh> mesh;
 
   vtkSmartPointer<vtkTransformPolyDataFilter> OutputModelToWorldTransformFilter;
   vtkSmartPointer<vtkGeneralTransform>        OutputWorldToModelTransform;

@@ -63,15 +63,13 @@ set(${KIT}_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/vtkPolyDataGeodesicDistance.h
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/vtkPolygonalSurfaceContourLineInterpolator2.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/FastMarching/vtkPolygonalSurfaceContourLineInterpolator2.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/BotschKobbeltRemesh/RemeshMesh.cxx
-  ${CMAKE_CURRENT_SOURCE_DIR}/BotschKobbeltRemesh/RemeshMesh.h
   )
 
 set(${KIT}_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleMRML
   vtkAddon
   MeshGeodesics
-  RemeshLibraries
+  BotschKobbeltRemesh
   )
 
 #-----------------------------------------------------------------------------

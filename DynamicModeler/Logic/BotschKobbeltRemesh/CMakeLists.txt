@@ -1,18 +1,21 @@
-PROJECT( RemeshLibraries )
+project(BotschKobbeltRemesh)
 
-IF(NOT LIBRARY_OUTPUT_PATH)
-  SET(LIBRARY_OUTPUT_PATH ${RemeshLibraries_BINARY_DIR}/bin CACHE INTERNAL
-    "Single output directory for building all libraries.")
-ENDIF(NOT LIBRARY_OUTPUT_PATH)
-SET(RemeshLibraries_LIBRARY_DIRS ${LIBRARY_OUTPUT_PATH})
-SET(RemeshLibraries_RUNTIME_DIRS ${LIBRARY_OUTPUT_PATH})
+set(SRCS
+  RemeshMesh.cxx
+  RemeshMesh.h
+  )
 
-IF(NOT EXECUTABLE_OUTPUT_PATH)
-  SET(EXECUTABLE_OUTPUT_PATH ${RemeshLibraries_BINARY_DIR}/bin CACHE INTERNAL
-    "Single output directory for building all executables.")
-ENDIF(NOT EXECUTABLE_OUTPUT_PATH)
-
-ADD_LIBRARY( ${PROJECT_NAME} STATIC )
-
+add_library(${PROJECT_NAME} STATIC ${SRCS})
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  )
+
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    ${VTK_LIBRARIES}
+  )
+
 set_property(GLOBAL APPEND PROPERTY Slicer_TARGETS ${PROJECT_NAME})

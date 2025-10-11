@@ -1,36 +1,47 @@
+/*==============================================================================
+
+  Program: 3D Slicer
+
+  Copyright (c) Laboratory for Percutaneous Surgery (PerkLab)
+  Queen's University, Kingston, ON, Canada. All Rights Reserved.
+
+  See COPYRIGHT.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+==============================================================================*/
+
+#include "RemeshMesh.h"
+
 // VTK includes
 #include <vtkCellArray.h>
 #include <vtkCleanPolyData.h>
-#include <vtkCommand.h>
-#include <vtkDoubleArray.h>
-#include <vtkGeneralTransform.h>
 #include <vtkIdList.h>
-#include <vtkIntArray.h>
 #include <vtkMath.h>
-#include <vtkMRMLNode.h>
-#include <vtkMRMLTransformableNode.h>
 #include <vtkNew.h>
 #include <vtkPoints.h>
-#include <vtkPointData.h>
 #include <vtkPolyData.h>
-#include <vtkPolyDataNormals.h>
 #include <vtkSmartPointer.h>
 #include <vtkStaticCellLocator.h>
-#include <vtkStringArray.h>
-#include <vtkTransformPolyDataFilter.h>
 #include <vtkTriangleFilter.h>
 
 // STD includes
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstdlib>
 #include <limits>
-#include <map>
 #include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+namespace BotschKobbeltRemesh
+{
 
 namespace
 {
@@ -89,7 +100,7 @@ struct Face
   bool Active{ true };
 };
 
-class RemeshMesh
+class InternalRemeshMesh
 {
 public:
   bool Initialize(vtkPolyData* polyData);
@@ -116,7 +127,7 @@ private:
 };
 
 //----------------------------------------------------------------------------
-bool RemeshMesh::Initialize(vtkPolyData* polyData)
+bool InternalRemeshMesh::Initialize(vtkPolyData* polyData)
 {
   if (!polyData)
     {
@@ -174,7 +185,7 @@ bool RemeshMesh::Initialize(vtkPolyData* polyData)
 }
 
 //----------------------------------------------------------------------------
-double RemeshMesh::AverageEdgeLength() const
+double InternalRemeshMesh::AverageEdgeLength() const
 {
   double totalLength = 0.0;
   vtkIdType edgeCount = 0;
@@ -192,7 +203,7 @@ double RemeshMesh::AverageEdgeLength() const
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::SplitLongEdges(double maximumLength, bool preserveBoundary)
+void InternalRemeshMesh::SplitLongEdges(double maximumLength, bool preserveBoundary)
 {
   if (maximumLength <= 0.0)
     {
@@ -225,7 +236,7 @@ void RemeshMesh::SplitLongEdges(double maximumLength, bool preserveBoundary)
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::CollapseShortEdges(double minimumLength, bool preserveBoundary)
+void InternalRemeshMesh::CollapseShortEdges(double minimumLength, bool preserveBoundary)
 {
   if (minimumLength <= 0.0)
     {
@@ -258,7 +269,7 @@ void RemeshMesh::CollapseShortEdges(double minimumLength, bool preserveBoundary)
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::FlipEdges(bool preserveBoundary)
+void InternalRemeshMesh::FlipEdges(bool preserveBoundary)
 {
   bool anyFlip = false;
   std::vector<std::pair<EdgeKey, std::vector<EdgeFaceConnectivity> > > interiorEdges;
@@ -284,7 +295,7 @@ void RemeshMesh::FlipEdges(bool preserveBoundary)
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::TangentialRelaxation(double relaxation, bool preserveBoundary)
+void InternalRemeshMesh::TangentialRelaxation(double relaxation, bool preserveBoundary)
 {
   if (relaxation <= 0.0)
     {
@@ -398,7 +409,7 @@ void RemeshMesh::TangentialRelaxation(double relaxation, bool preserveBoundary)
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::ProjectToSurface(vtkStaticCellLocator* locator)
+void InternalRemeshMesh::ProjectToSurface(vtkStaticCellLocator* locator)
 {
   if (!locator)
     {
@@ -424,7 +435,7 @@ void RemeshMesh::ProjectToSurface(vtkStaticCellLocator* locator)
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkPolyData> RemeshMesh::ToPolyData() const
+vtkSmartPointer<vtkPolyData> InternalRemeshMesh::ToPolyData() const
 {
   vtkNew<vtkPoints> points;
   vtkNew<vtkCellArray> polys;
@@ -473,7 +484,7 @@ vtkSmartPointer<vtkPolyData> RemeshMesh::ToPolyData() const
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::BuildConnectivity()
+void InternalRemeshMesh::BuildConnectivity()
 {
   this->EdgeToFaces.clear();
   this->VertexNeighbors.clear();
@@ -537,7 +548,7 @@ void RemeshMesh::BuildConnectivity()
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::RemoveInactiveElements()
+void InternalRemeshMesh::RemoveInactiveElements()
 {
   std::vector<vtkIdType> indexMap(this->Vertices.size(), -1);
   std::vector<Vertex> compactVertices;
@@ -593,7 +604,7 @@ void RemeshMesh::RemoveInactiveElements()
 }
 
 //----------------------------------------------------------------------------
-bool RemeshMesh::SplitEdge(const EdgeKey& key, const std::vector<EdgeFaceConnectivity>& adjacency, bool preserveBoundary)
+bool InternalRemeshMesh::SplitEdge(const EdgeKey& key, const std::vector<EdgeFaceConnectivity>& adjacency, bool preserveBoundary)
 {
   if (adjacency.empty())
     {
@@ -671,7 +682,7 @@ bool RemeshMesh::SplitEdge(const EdgeKey& key, const std::vector<EdgeFaceConnect
 }
 
 //----------------------------------------------------------------------------
-bool RemeshMesh::CollapseEdge(const EdgeKey& key, bool preserveBoundary)
+bool InternalRemeshMesh::CollapseEdge(const EdgeKey& key, bool preserveBoundary)
 {
   if (!this->Vertices[key.V0].Active || !this->Vertices[key.V1].Active)
     {
@@ -738,50 +749,7 @@ static int TargetValence(bool isBoundary)
 }
 
 //----------------------------------------------------------------------------
-void RemeshMesh::RunRemesh(vtkPolyData* transformedInput, double targetEdgeLength,
-  int iterationCount, double relaxation, bool preserveBoundary)
-{
-  if (!this->Initialize(transformedInput))
-    {
-    vtkErrorMacro("Failed to prepare input mesh for remeshing.");
-    return false;
-    }
-
-  targetEdgeLength = std::max(targetEdgeLength, 0.0);
-  iterationCount = std::max(iterationCount, 1);
-  relaxation = std::min(std::max(relaxation, 0.0), 1.0);
-
-  if (targetEdgeLength <= std::numeric_limits<double>::epsilon())
-    {
-    targetEdgeLength = mesh.AverageEdgeLength();
-    }
-
-  if (targetEdgeLength <= std::numeric_limits<double>::epsilon())
-    {
-    vtkErrorMacro("Cannot determine target edge length for remeshing.");
-    return false;
-    }
-
-  vtkNew<vtkStaticCellLocator> locator;
-  locator->SetDataSet(transformedInput);
-  locator->BuildLocator();
-
-  double maximumEdgeLength = REMESH_SPLIT_FACTOR * targetEdgeLength;
-  double minimumEdgeLength = REMESH_COLLAPSE_FACTOR * targetEdgeLength;
-
-  for (int iteration = 0; iteration < iterationCount; ++iteration)
-    {
-    mesh.SplitLongEdges(maximumEdgeLength, preserveBoundary);
-    mesh.CollapseShortEdges(minimumEdgeLength, preserveBoundary);
-    mesh.FlipEdges(preserveBoundary);
-    mesh.TangentialRelaxation(relaxation, preserveBoundary);
-    mesh.ProjectToSurface(locator.GetPointer());
-    }
-  return true;
-}
-
-//----------------------------------------------------------------------------
-bool RemeshMesh::FlipEdgeInternal(const EdgeKey& key, const std::vector<EdgeFaceConnectivity>& adjacency, bool preserveBoundary)
+bool InternalRemeshMesh::FlipEdgeInternal(const EdgeKey& key, const std::vector<EdgeFaceConnectivity>& adjacency, bool preserveBoundary)
 {
   if (adjacency.size() != 2)
     {
@@ -859,7 +827,7 @@ bool RemeshMesh::FlipEdgeInternal(const EdgeKey& key, const std::vector<EdgeFace
 }
 
 //----------------------------------------------------------------------------
-double RemeshMesh::EdgeLength(vtkIdType v0, vtkIdType v1) const
+double InternalRemeshMesh::EdgeLength(vtkIdType v0, vtkIdType v1) const
 {
   const std::array<double, 3>& p0 = this->Vertices[v0].Position;
   const std::array<double, 3>& p1 = this->Vertices[v1].Position;
@@ -867,5 +835,61 @@ double RemeshMesh::EdgeLength(vtkIdType v0, vtkIdType v1) const
   return vtkMath::Norm(diff);
 }
 
-} // end anonymous namespace
+} // namespace
+
 //----------------------------------------------------------------------------
+bool Remesh(vtkPolyData* inputPolyData,
+            double targetEdgeLength,
+            int iterationCount,
+            double relaxation,
+            bool preserveBoundary,
+            vtkSmartPointer<vtkPolyData>& remeshedOutput)
+{
+  remeshedOutput = vtkSmartPointer<vtkPolyData>::New();
+
+  if (!inputPolyData)
+    {
+    return true;
+    }
+
+  InternalRemeshMesh mesh;
+  if (!mesh.Initialize(inputPolyData))
+    {
+    return false;
+    }
+
+  targetEdgeLength = std::max(targetEdgeLength, 0.0);
+  iterationCount = std::max(iterationCount, 1);
+  relaxation = std::max(0.0, std::min(1.0, relaxation));
+
+  if (targetEdgeLength <= std::numeric_limits<double>::epsilon())
+    {
+    targetEdgeLength = mesh.AverageEdgeLength();
+    }
+
+  if (targetEdgeLength <= std::numeric_limits<double>::epsilon())
+    {
+    return false;
+    }
+
+  vtkNew<vtkStaticCellLocator> locator;
+  locator->SetDataSet(inputPolyData);
+  locator->BuildLocator();
+
+  double maximumEdgeLength = REMESH_SPLIT_FACTOR * targetEdgeLength;
+  double minimumEdgeLength = REMESH_COLLAPSE_FACTOR * targetEdgeLength;
+
+  for (int iteration = 0; iteration < iterationCount; ++iteration)
+    {
+    mesh.SplitLongEdges(maximumEdgeLength, preserveBoundary);
+    mesh.CollapseShortEdges(minimumEdgeLength, preserveBoundary);
+    mesh.FlipEdges(preserveBoundary);
+    mesh.TangentialRelaxation(relaxation, preserveBoundary);
+    mesh.ProjectToSurface(locator.GetPointer());
+    }
+
+  remeshedOutput = mesh.ToPolyData();
+  return static_cast<bool>(remeshedOutput);
+}
+
+} // namespace BotschKobbeltRemesh

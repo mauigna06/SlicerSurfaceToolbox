@@ -16,48 +16,31 @@
 
 ==============================================================================*/
 
+//==============================================================================
+
 #include "vtkSlicerDynamicModelerRemeshTool.h"
+
+#include "BotschKobbeltRemesh/RemeshMesh.h"
 
 #include "vtkMRMLDynamicModelerNode.h"
 
 // MRML includes
 #include <vtkMRMLModelNode.h>
+#include <vtkMRMLTransformableNode.h>
 
 // VTK includes
-#include <vtkCellArray.h>
-#include <vtkCleanPolyData.h>
 #include <vtkCommand.h>
-#include <vtkDoubleArray.h>
 #include <vtkGeneralTransform.h>
-#include <vtkIdList.h>
 #include <vtkIntArray.h>
-#include <vtkMath.h>
-#include <vtkMRMLNode.h>
-#include <vtkMRMLTransformableNode.h>
 #include <vtkNew.h>
-#include <vtkPoints.h>
-#include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataNormals.h>
 #include <vtkSmartPointer.h>
-#include <vtkStaticCellLocator.h>
 #include <vtkStringArray.h>
 #include <vtkTransformPolyDataFilter.h>
-#include <vtkTriangleFilter.h>
-
-#include <RemeshMesh.h>
 
 // STD includes
 #include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstdlib>
-#include <limits>
-#include <map>
-#include <set>
-#include <unordered_map>
-#include <utility>
-#include <vector>
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerDynamicModelerRemeshTool);
@@ -70,7 +53,7 @@ const char* REMESH_TARGET_EDGE_LENGTH_ATTRIBUTE = "Remesh.TargetEdgeLength";
 const char* REMESH_ITERATION_COUNT_ATTRIBUTE = "Remesh.IterationCount";
 const char* REMESH_RELAXATION_ATTRIBUTE = "Remesh.Relaxation";
 const char* REMESH_PRESERVE_BOUNDARY_ATTRIBUTE = "Remesh.PreserveBoundary";
-}
+} // namespace
 
 //----------------------------------------------------------------------------
 vtkSlicerDynamicModelerRemeshTool::vtkSlicerDynamicModelerRemeshTool()
@@ -146,13 +129,13 @@ vtkSlicerDynamicModelerRemeshTool::vtkSlicerDynamicModelerRemeshTool()
     true);
   this->InputParameterInfo.push_back(preserveBoundary);
 
-  this->InputModelToWorldTransform = vtkSmartPointer<vtkGeneralTransform>::New();
+  this->InputModelNodeToWorldTransform = vtkSmartPointer<vtkGeneralTransform>::New();
   this->InputModelToWorldTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
-  this->InputModelToWorldTransformFilter->SetTransform(this->InputModelToWorldTransform);
+  this->InputModelToWorldTransformFilter->SetTransform(this->InputModelNodeToWorldTransform);
 
   this->OutputWorldToModelTransform = vtkSmartPointer<vtkGeneralTransform>::New();
-  this->OutputWorldToModelTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
-  this->OutputWorldToModelTransformFilter->SetTransform(this->OutputWorldToModelTransform);
+  this->OutputModelToWorldTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  this->OutputModelToWorldTransformFilter->SetTransform(this->OutputWorldToModelTransform);
 }
 
 //----------------------------------------------------------------------------
@@ -195,10 +178,11 @@ bool vtkSlicerDynamicModelerRemeshTool::RunInternal(vtkMRMLDynamicModelerNode* s
     return true;
     }
 
-  if (!inputModelNode->GetMesh() || inputModelNode->GetMesh()->GetNumberOfPoints() == 0)
+  vtkPolyData* inputPolyData = inputModelNode->GetPolyData();
+  if (!inputPolyData || inputPolyData->GetNumberOfPoints() == 0)
     {
     vtkNew<vtkPolyData> emptyPolyData;
-    outputModelNode->SetAndObservePolyData(emptyPolyData.GetPointer());
+    outputModelNode->SetAndObserveMesh(emptyPolyData.GetPointer());
     return true;
     }
 
@@ -211,41 +195,50 @@ bool vtkSlicerDynamicModelerRemeshTool::RunInternal(vtkMRMLDynamicModelerNode* s
     this->InputModelNodeToWorldTransform->Identity();
     }
 
-  this->InputModelToWorldTransformFilter->SetTransform(this->InputModelNodeToWorldTransform);
-  this->InputModelToWorldTransformFilter->SetInputData(inputModelNode->GetMesh());
+  this->InputModelToWorldTransformFilter->SetInputData(inputPolyData);
   this->InputModelToWorldTransformFilter->Update();
 
-
-  if (!this->InputModelToWorldTransformFilter->GetOutput() || this->InputModelToWorldTransformFilter->GetOutput()->GetNumberOfPoints() == 0)
+  vtkPolyData* transformedInput = this->InputModelToWorldTransformFilter->GetOutput();
+  if (!transformedInput || transformedInput->GetNumberOfPoints() == 0)
     {
     vtkNew<vtkPolyData> emptyPolyData;
-    outputModelNode->SetAndObservePolyData(emptyPolyData.GetPointer());
+    outputModelNode->SetAndObserveMesh(emptyPolyData.GetPointer());
     return true;
     }
 
-  
   double targetEdgeLength = this->GetNthInputParameterValue(0, surfaceEditorNode).ToDouble();
   int iterationCount = this->GetNthInputParameterValue(1, surfaceEditorNode).ToInt();
   double relaxation = this->GetNthInputParameterValue(2, surfaceEditorNode).ToDouble();
   bool preserveBoundary = this->GetNthInputParameterValue(3, surfaceEditorNode).ToInt() != 0;
 
-  // Process
-  bool goodResult = mesh->RunRemesh(this->InputModelToWorldTransformFilter->GetOutput(), targetEdgeLength,
-    iterationCount, relaxation, preserveBoundary);
+  targetEdgeLength = std::max(targetEdgeLength, 0.0);
+  iterationCount = std::max(iterationCount, 1);
+  relaxation = std::max(0.0, std::min(1.0, relaxation));
 
-  if (!goodResult)
+  vtkSmartPointer<vtkPolyData> remeshedPolyData;
+  if (!BotschKobbeltRemesh::Remesh(transformedInput,
+      targetEdgeLength,
+      iterationCount,
+      relaxation,
+      preserveBoundary,
+      remeshedPolyData))
     {
-    vtkErrorMacro("Failed to prepare input mesh for remeshing.");
+    vtkErrorMacro("Remeshing failed.");
     return false;
     }
 
-  vtkSmartPointer<vtkPolyData> remeshedPolyData = mesh->ToPolyData();
   if (!remeshedPolyData || remeshedPolyData->GetNumberOfPoints() == 0)
     {
     vtkNew<vtkPolyData> emptyPolyData;
-    outputModelNode->SetAndObservePolyData(emptyPolyData.GetPointer());
+    outputModelNode->SetAndObserveMesh(emptyPolyData.GetPointer());
     return true;
     }
+
+  vtkNew<vtkPolyDataNormals> normals;
+  normals->SetInputData(remeshedPolyData);
+  normals->SplittingOff();
+  normals->ComputePointNormalsOn();
+  normals->Update();
 
   if (outputModelNode->GetParentTransformNode())
     {
@@ -256,15 +249,14 @@ bool vtkSlicerDynamicModelerRemeshTool::RunInternal(vtkMRMLDynamicModelerNode* s
     this->OutputWorldToModelTransform->Identity();
     }
 
-  this->OutputWorldToModelTransformFilter->SetTransform(this->OutputWorldToModelTransform);
-  this->OutputWorldToModelTransformFilter->SetInputConnection(this->RemeshPolyDataFilter->GetOutputPort());
-  this->OutputWorldToModelTransformFilter->Update();
+  this->OutputModelToWorldTransformFilter->SetInputConnection(normals->GetOutputPort());
+  this->OutputModelToWorldTransformFilter->Update();
 
   vtkNew<vtkPolyData> outputMesh;
-  outputMesh->DeepCopy(this->OutputWorldToModelTransformFilter->GetOutput());
+  outputMesh->DeepCopy(this->OutputModelToWorldTransformFilter->GetOutput());
 
   MRMLNodeModifyBlocker blocker(outputModelNode);
-  outputModelNode->SetAndObserveMesh(outputMesh);
+  outputModelNode->SetAndObserveMesh(outputMesh.GetPointer());
   outputModelNode->InvokeCustomModifiedEvent(vtkMRMLModelNode::MeshModifiedEvent);
 
   return true;
